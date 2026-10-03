@@ -13,6 +13,7 @@ import { money, percent } from '@/utils/format'
 import { productImage } from '@/utils/product-image'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -23,6 +24,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { isManager } = useAuth()
+const { t, tl } = useI18n()
 
 const productId = route.params.id ? String(route.params.id) : ''
 const isEdit = computed(() => !!productId)
@@ -64,20 +66,20 @@ function onPickImage(e) {
   const file = e.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
-    toast.error('请选择图片文件（JPG / PNG / WebP / SVG）')
+    toast.error(t('product.imageTypeError'))
     return
   }
   if (file.size > MAX_IMAGE_SIZE) {
-    toast.error(`图片不能超过 2MB，当前 ${(file.size / 1024 / 1024).toFixed(1)}MB`)
+    toast.error(t('product.imageTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }))
     return
   }
   const reader = new FileReader()
   reader.onload = () => {
     form.value.image = String(reader.result || '')
     imageError.value = false
-    toast.success(`已选择图片：${file.name}`)
+    toast.success(t('product.imageUploaded', { name: file.name }))
   }
-  reader.onerror = () => toast.error('图片读取失败，请重试')
+  reader.onerror = () => toast.error(t('product.imageReadFailed'))
   reader.readAsDataURL(file)
   // 清空 input，保证连续选同一个文件也能触发 change
   e.target.value = ''
@@ -86,7 +88,7 @@ function onPickImage(e) {
 function clearImage() {
   form.value.image = ''
   imageError.value = false
-  toast.info('已移除商品图片')
+  toast.info(t('product.imageRemoved'))
 }
 
 /** 毛利率：(售价 - 进价) / 售价，售价为 0 时按 0 处理，避免出现 Infinity */
@@ -158,26 +160,26 @@ function validate() {
   const f = form.value
   const e = {}
   const barcode = String(f.barcode || '').trim()
-  if (!barcode) e.barcode = '条码不能为空'
-  else if (!/^\d{8,13}$/.test(barcode)) e.barcode = '条码需为 8-13 位数字'
-  if (!String(f.name || '').trim()) e.name = '商品名称不能为空'
-  if (!f.categoryId) e.categoryId = '请选择商品分类'
-  if (f.price === '' || Number(f.price) <= 0) e.price = '售价必须大于 0'
-  if (f.costPrice !== '' && Number(f.costPrice) < 0) e.costPrice = '进价不能小于 0'
-  if (f.costPrice !== '' && Number(f.costPrice) > Number(f.price)) e.costPrice = '进价不应高于售价'
-  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = '会员价不能高于售价'
-  if (f.warnThreshold !== '' && Number(f.warnThreshold) < 0) e.warnThreshold = '预警阈值不能为负数'
+  if (!barcode) e.barcode = t('product.errBarcodeRequired')
+  else if (!/^\d{8,13}$/.test(barcode)) e.barcode = t('product.errBarcodeFormat')
+  if (!String(f.name || '').trim()) e.name = t('product.errNameRequired')
+  if (!f.categoryId) e.categoryId = t('product.errCategoryRequired')
+  if (f.price === '' || Number(f.price) <= 0) e.price = t('product.errPricePositive')
+  if (f.costPrice !== '' && Number(f.costPrice) < 0) e.costPrice = t('product.errCostNegative')
+  if (f.costPrice !== '' && Number(f.costPrice) > Number(f.price)) e.costPrice = t('product.errCostAbovePrice')
+  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = t('product.errMemberPrice')
+  if (f.warnThreshold !== '' && Number(f.warnThreshold) < 0) e.warnThreshold = t('product.errThresholdNegative')
   errors.value = e
   return Object.keys(e).length === 0
 }
 
 async function onSave() {
   if (!isManager.value) {
-    toast.warning('仅店长可以保存商品信息')
+    toast.warning(t('product.onlyManagerSave'))
     return
   }
   if (!validate()) {
-    toast.warning('请先修正表单中的错误')
+    toast.warning(t('product.fixErrors'))
     return
   }
 
@@ -204,7 +206,7 @@ async function onSave() {
   else await productApi.create(payload).catch(() => null)
 
   saving.value = false
-  toast.ok('保存成功')
+  toast.ok(t('product.saveOk'))
   router.push({ name: 'products' })
 }
 
@@ -216,33 +218,44 @@ function goBack() {
   router.push({ name: 'products' })
 }
 
-/** 流水类型 → 徽章配色：入库为绿，其余为警示色系 */
+/** 流水类型 → 文案 key 与徽章配色：入库为绿，其余为警示色系 */
+const LOG_TYPE_KEY = {
+  purchase: 'stock.typePurchase',
+  loss: 'stock.typeLoss',
+  damage: 'stock.typeDamage',
+  check: 'stock.typeCheckUp',
+}
 const LOG_TYPE_STYLE = {
-  purchase: { label: '采购入库', class: 'badge-success' },
-  loss: { label: '报损', class: 'badge-danger' },
-  damage: { label: '损坏', class: 'badge-warning' },
-  check: { label: '盘点调整', class: 'badge-info' },
+  purchase: { class: 'badge-success' },
+  loss: { class: 'badge-danger' },
+  damage: { class: 'badge-warning' },
+  check: { class: 'badge-info' },
+}
+
+/** 优先按类型码取字典，取不到时回退到后端给的中文 name */
+function logTypeText(l) {
+  return LOG_TYPE_KEY[l.type] ? t(LOG_TYPE_KEY[l.type]) : tl(l, 'typeName', t('stock.typeOther'))
 }
 </script>
 
 <template>
   <PageShell>
     <PageHeader
-      :title="isEdit ? '编辑商品' : '新增商品'"
-      :desc="isEdit ? `商品编号 ${productId} · 修改后请保存` : '录入新商品的基础信息、价格与库存预警'"
+      :title="isEdit ? $t('product.editProduct') : $t('product.newProduct')"
+      :desc="isEdit ? $t('product.editDesc', { id: productId }) : $t('product.createDesc')"
       icon="product"
     >
       <template #actions>
-        <AppButton icon="arrowLeft" @click="goBack">返回</AppButton>
-        <AppButton @click="onCancel">取消</AppButton>
-        <AppButton variant="primary" icon="save" :loading="saving" @click="onSave">保存</AppButton>
+        <AppButton icon="arrowLeft" @click="goBack">{{ $t('common.back') }}</AppButton>
+        <AppButton @click="onCancel">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="save" :loading="saving" @click="onSave">{{ $t('common.save') }}</AppButton>
       </template>
     </PageHeader>
 
     <div v-if="!isManager" class="card card-pad mb-3 flex items-start gap-2.5">
       <Icon name="lock" :size="16" :style="{ color: 'var(--c-warning)' }" />
       <div class="text-[12.5px] text-text-2">
-        <span class="font-medium text-text">权限不足</span>：商品档案为店长专属功能，收银员只能查看表单，无法保存。
+        <span class="font-medium text-text">{{ $t('common.noPermission') }}</span>：{{ $t('product.permTipForm') }}
       </div>
     </div>
 
@@ -253,8 +266,8 @@ const LOG_TYPE_STYLE = {
         <div class="card">
           <div class="panel-head">
             <div>
-              <div class="text-[14px] font-semibold">基础信息</div>
-              <div class="text-[11.5px] text-text-3 mt-0.5">条码可用扫码枪直接扫入，回车即完成输入</div>
+              <div class="text-[14px] font-semibold">{{ $t('product.baseInfo') }}</div>
+              <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('product.baseInfoDesc') }}</div>
             </div>
             <Icon name="tag" :size="15" class="text-text-3" />
           </div>
@@ -265,29 +278,29 @@ const LOG_TYPE_STYLE = {
             </div>
 
             <div v-else class="grid grid-cols-2 gap-3">
-              <FormField label="条码" required :error="errors.barcode" hint="8-13 位数字" span="2">
+              <FormField :label="$t('product.barcode')" required :error="errors.barcode" :hint="$t('product.barcodeHint')" span="2">
                 <div class="flex items-center gap-2">
                   <input
                     v-model="form.barcode"
                     class="input flex-1 font-mono"
                     :class="errors.barcode && 'is-error'"
-                    placeholder="扫码枪扫描或手动输入"
+                    :placeholder="$t('product.barcodePlaceholder')"
                   />
-                  <AppButton icon="barcode" @click="fillBarcode">生成条码</AppButton>
+                  <AppButton icon="barcode" @click="fillBarcode">{{ $t('product.generateBarcode') }}</AppButton>
                 </div>
               </FormField>
 
-              <FormField label="商品名称" required :error="errors.name" span="2">
+              <FormField :label="$t('product.name')" required :error="errors.name" span="2">
                 <input
                   v-model="form.name"
                   class="input"
                   :class="errors.name && 'is-error'"
-                  placeholder="如：红富士苹果"
+                  :placeholder="$t('product.namePlaceholder')"
                 />
               </FormField>
 
               <!-- 商品图片：支持上传本地图片，也可以直接填图片路径 -->
-              <FormField label="商品图片" span="2" hint="支持 JPG / PNG / WebP / SVG，建议方形图，大小不超过 2MB">
+              <FormField :label="$t('product.imageTitle')" span="2" :hint="$t('product.imageHint')">
                 <div class="flex items-start gap-3">
                   <div
                     class="shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
@@ -301,13 +314,13 @@ const LOG_TYPE_STYLE = {
                     <img
                       v-if="form.image"
                       :src="form.image"
-                      alt="商品图片预览"
+                      :alt="$t('product.imagePreviewAlt')"
                       class="w-full h-full object-cover"
                       @error="imageError = true"
                     />
                     <div v-else class="flex flex-col items-center gap-1 text-text-3">
                       <Icon name="product" :size="24" />
-                      <span class="text-[10.5px]">暂无图片</span>
+                      <span class="text-[10.5px]">{{ $t('product.noImageShort') }}</span>
                     </div>
                   </div>
 
@@ -320,41 +333,41 @@ const LOG_TYPE_STYLE = {
                       @change="onPickImage"
                     />
                     <div class="flex items-center gap-2 flex-wrap">
-                      <AppButton icon="upload" @click="fileInput?.click()">上传图片</AppButton>
+                      <AppButton icon="upload" @click="fileInput?.click()">{{ $t('product.uploadImage') }}</AppButton>
                       <AppButton v-if="form.image" icon="trash" variant="default" @click="clearImage">
-                        移除图片
+                        {{ $t('product.removeImage') }}
                       </AppButton>
                     </div>
                     <input
                       v-model="form.image"
                       class="input font-mono text-[12.5px]"
-                      placeholder="或直接填写图片地址，例如 /products/p0001.svg"
+                      :placeholder="$t('product.imagePathPlaceholder')"
                       @input="imageError = false"
                     />
                     <div v-if="imageError" class="field-error">
-                      图片无法加载，请检查路径是否正确
+                      {{ $t('product.imageInvalid') }}
                     </div>
                     <div v-else class="text-[11.5px] text-text-3">
-                      上传的图片以 Base64 保存在当前页面，刷新后恢复初始图片路径。
+                      {{ $t('product.imageBase64Tip') }}
                     </div>
                   </div>
                 </div>
               </FormField>
 
-              <FormField label="分类" required :error="errors.categoryId">
+              <FormField :label="$t('product.category')" required :error="errors.categoryId">
                 <select v-model="form.categoryId" class="input" :class="errors.categoryId && 'is-error'">
-                  <option value="">请选择分类</option>
+                  <option value="">{{ $t('product.selectCategory') }}</option>
                   <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
                 </select>
               </FormField>
 
-              <FormField label="单位">
+              <FormField :label="$t('common.unit')">
                 <select v-model="form.unit" class="input">
                   <option v-for="u in UNITS" :key="u" :value="u">{{ u }}</option>
                 </select>
               </FormField>
 
-              <FormField label="状态" span="2" hint="停用后收银台无法扫码销售">
+              <FormField :label="$t('product.status')" span="2" :hint="$t('product.statusHint')">
                 <div class="seg">
                   <button
                     type="button"
@@ -362,7 +375,7 @@ const LOG_TYPE_STYLE = {
                     :class="form.status === 'active' && 'is-active'"
                     @click="form.status = 'active'"
                   >
-                    在售
+                    {{ $t('product.active') }}
                   </button>
                   <button
                     type="button"
@@ -370,7 +383,7 @@ const LOG_TYPE_STYLE = {
                     :class="form.status === 'inactive' && 'is-active'"
                     @click="form.status = 'inactive'"
                   >
-                    停用
+                    {{ $t('product.inactive') }}
                   </button>
                 </div>
               </FormField>
@@ -381,7 +394,7 @@ const LOG_TYPE_STYLE = {
         <!-- 2. 价格信息 -->
         <div class="card">
           <div class="panel-head">
-            <div class="text-[14px] font-semibold">价格信息</div>
+            <div class="text-[14px] font-semibold">{{ $t('product.priceInfo') }}</div>
             <Icon name="money" :size="15" class="text-text-3" />
           </div>
 
@@ -391,11 +404,11 @@ const LOG_TYPE_STYLE = {
             </div>
 
             <div v-else class="grid grid-cols-2 gap-3">
-              <FormField label="进价" :error="errors.costPrice" hint="元 / 单位">
+              <FormField :label="$t('product.costPrice')" :error="errors.costPrice" :hint="$t('product.unitCost')">
                 <input v-model="form.costPrice" type="number" min="0" step="0.01" class="input num" placeholder="0.00" />
               </FormField>
 
-              <FormField label="售价" required :error="errors.price" hint="元 / 单位">
+              <FormField :label="$t('product.price')" required :error="errors.price" :hint="$t('product.unitCost')">
                 <input
                   v-model="form.price"
                   type="number"
@@ -407,11 +420,11 @@ const LOG_TYPE_STYLE = {
                 />
               </FormField>
 
-              <FormField label="会员价" :error="errors.memberPrice" hint="需 ≤ 售价，留空同售价">
+              <FormField :label="$t('product.memberPrice')" :error="errors.memberPrice" :hint="$t('product.memberPriceHint')">
                 <input v-model="form.memberPrice" type="number" min="0" step="0.01" class="input num" placeholder="0.00" />
               </FormField>
 
-              <FormField label="毛利率" hint="(售价 - 进价) ÷ 售价">
+              <FormField :label="$t('product.grossRate')" :hint="$t('product.grossFormula')">
                 <div
                   class="flex items-center gap-2 px-3 rounded-md"
                   :style="{
@@ -431,25 +444,25 @@ const LOG_TYPE_STYLE = {
         <!-- 3. 库存与预警 -->
         <div class="card">
           <div class="panel-head">
-            <div class="text-[14px] font-semibold">库存与预警</div>
+            <div class="text-[14px] font-semibold">{{ $t('product.stockInfo') }}</div>
             <Icon name="package" :size="15" class="text-text-3" />
           </div>
 
           <div class="p-4">
             <div class="grid grid-cols-2 gap-3">
               <FormField
-                label="当前库存"
-                :hint="isEdit ? '库存由入库/盘点流水维护，此处只读' : '新商品初始库存为 0，入库后自动更新'"
+                :label="$t('product.currentStock')"
+                :hint="isEdit ? $t('product.stockHintEdit') : $t('product.stockHintNew')"
               >
                 <input :value="isEdit ? form.stock : 0" class="input num" disabled />
               </FormField>
 
-              <FormField label="预警阈值" :error="errors.warnThreshold" hint="库存低于该值触发预警">
+              <FormField :label="$t('product.warnThreshold')" :error="errors.warnThreshold" :hint="$t('product.warnThresholdHint')">
                 <input v-model="form.warnThreshold" type="number" min="0" class="input num" />
               </FormField>
 
-              <FormField label="备注" span="2">
-                <textarea v-model="form.remark" rows="3" class="w-full" placeholder="选填，如供货要求、陈列位置、损耗说明" />
+              <FormField :label="$t('common.remark')" span="2">
+                <textarea v-model="form.remark" rows="3" class="w-full" :placeholder="$t('product.remarkPlaceholderForm')" />
               </FormField>
             </div>
           </div>
@@ -459,8 +472,8 @@ const LOG_TYPE_STYLE = {
         <div class="card">
           <div class="panel-head">
             <div>
-              <div class="text-[14px] font-semibold">变动记录</div>
-              <div class="text-[11.5px] text-text-3 mt-0.5">该商品最近 8 条库存流水</div>
+              <div class="text-[14px] font-semibold">{{ $t('product.changeLog') }}</div>
+              <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('product.changeLogDesc') }}</div>
             </div>
             <Icon name="history" :size="15" class="text-text-3" />
           </div>
@@ -468,8 +481,8 @@ const LOG_TYPE_STYLE = {
           <div class="p-2">
             <div v-if="!isEdit" class="empty py-6">
               <Icon name="info" :size="22" class="text-text-3 opacity-70" />
-              <div class="text-[13px]">新增模式下暂无变动记录</div>
-              <div class="text-[12px] text-text-3">保存商品后可在库存流水页查看出入库明细</div>
+              <div class="text-[13px]">{{ $t('product.changeLogNewEmpty') }}</div>
+              <div class="text-[12px] text-text-3">{{ $t('product.changeLogNewHint') }}</div>
             </div>
 
             <template v-else>
@@ -479,7 +492,7 @@ const LOG_TYPE_STYLE = {
 
               <div v-else-if="!logs.length" class="empty py-6">
                 <Icon name="inbox" :size="22" class="text-text-3 opacity-70" />
-                <div class="text-[13px]">暂无库存流水</div>
+                <div class="text-[13px]">{{ $t('product.changeLogEmpty') }}</div>
               </div>
 
               <div
@@ -489,7 +502,7 @@ const LOG_TYPE_STYLE = {
                 class="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-hover"
               >
                 <span class="badge" :class="LOG_TYPE_STYLE[l.type]?.class || 'badge-muted'">
-                  {{ LOG_TYPE_STYLE[l.type]?.label || l.typeName || '调整' }}
+                  {{ logTypeText(l) }}
                 </span>
                 <span class="flex-1 min-w-0 text-[12.5px] text-text-2 truncate">{{ l.reason || l.relatedNo || '—' }}</span>
                 <span
@@ -498,7 +511,7 @@ const LOG_TYPE_STYLE = {
                 >
                   {{ Number(l.changeQty) >= 0 ? '+' : '' }}{{ l.changeQty }}{{ l.unit }}
                 </span>
-                <span class="num text-[12px] text-text-3 w-[62px] text-right">{{ l.afterQty }} 结存</span>
+                <span class="num text-[12px] text-text-3 w-[62px] text-right">{{ l.afterQty }} {{ $t('product.stockBalance') }}</span>
                 <span class="text-[12px] text-text-3 w-[110px] text-right truncate">{{ l.operator }}</span>
                 <span class="text-[12px] text-text-3 w-[92px] text-right">{{ String(l.createdAt).slice(5, 16) }}</span>
               </div>
@@ -512,42 +525,42 @@ const LOG_TYPE_STYLE = {
         <div class="card card-pad">
           <div class="flex items-center gap-2 mb-2">
             <Icon name="info" :size="15" :style="{ color: 'var(--c-primary)' }" />
-            <div class="text-[13.5px] font-semibold">小提示</div>
+            <div class="text-[13.5px] font-semibold">{{ $t('product.catTip') }}</div>
           </div>
           <ul class="text-[12.5px] text-text-2 space-y-1.5 leading-relaxed">
-            <li>条码建议 13 位，扫码枪扫入后会自动补全。</li>
-            <li>会员价留空时默认与售价一致。</li>
-            <li>库存请通过采购入库或库存调整维护。</li>
+            <li>{{ $t('product.formTip1') }}</li>
+            <li>{{ $t('product.formTip2') }}</li>
+            <li>{{ $t('product.formTip3') }}</li>
           </ul>
         </div>
 
         <div class="card card-pad">
-          <div class="text-[13.5px] font-semibold mb-3">当前填写摘要</div>
+          <div class="text-[13.5px] font-semibold mb-3">{{ $t('product.summaryTitle') }}</div>
           <div class="space-y-2 text-[12.5px]">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">商品名称</span>
+              <span class="text-text-3">{{ $t('product.name') }}</span>
               <span class="truncate">{{ form.name || '—' }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">条码</span>
+              <span class="text-text-3">{{ $t('product.barcode') }}</span>
               <span class="font-mono">{{ form.barcode || '—' }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">分类</span>
+              <span class="text-text-3">{{ $t('product.category') }}</span>
               <span>{{ categories.find((c) => c.id === form.categoryId)?.name || '—' }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">售价</span>
+              <span class="text-text-3">{{ $t('product.price') }}</span>
               <span class="price">{{ money(form.price) }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">毛利率</span>
+              <span class="text-text-3">{{ $t('product.grossRate') }}</span>
               <span class="num" :style="{ color: 'var(--c-success)' }">{{ percent(grossRate) }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-text-3">状态</span>
+              <span class="text-text-3">{{ $t('product.status') }}</span>
               <span class="badge" :class="form.status === 'active' ? 'badge-success' : 'badge-muted'">
-                {{ form.status === 'active' ? '在售' : '停用' }}
+                {{ form.status === 'active' ? $t('product.active') : $t('product.inactive') }}
               </span>
             </div>
           </div>

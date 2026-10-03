@@ -13,6 +13,7 @@ import { exportObjects } from '@/utils/export'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { useTable } from '@/composables/useTable'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import Empty from '@/components/ui/Empty.vue'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -26,24 +27,41 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const toast = useToast()
 const { isManager } = useAuth()
+/** 本地 t 已被表格实例占用，i18n 取词函数改名 tr */
+const { t: tr, tl } = useI18n()
 
+/** 模块码 → 字典键；mock 数据里的模块是中文，找不到时回退原文 */
+const MODULE_KEY = {
+  认证: 'log.moduleAuth',
+  订单: 'log.moduleOrder',
+  商品: 'log.moduleProduct',
+  库存: 'log.moduleStock',
+  会员: 'log.moduleMember',
+  用户: 'log.moduleUser',
+}
 /** 模块徽章：不同业务域用不同色相，扫日志时更容易区分 */
-const MODULE_STYLE = {
-  认证: { label: '认证', class: 'badge-info' },
-  订单: { label: '订单', class: 'badge-primary' },
-  商品: { label: '商品', class: 'badge-accent' },
-  库存: { label: '库存', class: 'badge-warning' },
-  会员: { label: '会员', class: 'badge-purple' },
-  用户: { label: '用户', class: 'badge-muted' },
+const MODULE_CLASS = {
+  认证: 'badge-info',
+  订单: 'badge-primary',
+  商品: 'badge-accent',
+  库存: 'badge-warning',
+  会员: 'badge-purple',
+  用户: 'badge-muted',
 }
-const RESULT_STYLE = {
-  success: { label: '成功', class: 'badge-success' },
-  fail: { label: '失败', class: 'badge-danger' },
+function moduleText(m) {
+  return MODULE_KEY[m] ? tr(MODULE_KEY[m]) : m
 }
+const MODULE_STYLE = computed(() =>
+  Object.fromEntries(Object.keys(MODULE_CLASS).map((m) => [m, { label: moduleText(m), class: MODULE_CLASS[m] }])),
+)
+const RESULT_STYLE = computed(() => ({
+  success: { label: tr('log.success'), class: 'badge-success' },
+  fail: { label: tr('log.failed'), class: 'badge-danger' },
+}))
 
 const TABS = [
-  { key: 'all', label: '全部操作日志' },
-  { key: 'login', label: '登录登出记录' },
+  { key: 'all', labelKey: 'log.tabAll' },
+  { key: 'login', labelKey: 'log.tabLogin' },
 ]
 const tab = ref('all')
 
@@ -58,15 +76,15 @@ const { list, total, loading, query, page, size } = t
 const modules = ref([])
 
 const columns = computed(() => [
-  { key: 'createdAt', label: '时间', width: 158 },
-  { key: 'operatorName', label: '操作人', width: 150 },
-  { key: 'roleName', label: '角色', width: 82 },
-  { key: 'module', label: '模块', width: 88 },
-  { key: 'action', label: '操作动作', width: 116 },
-  { key: 'detail', label: '详情', width: 320 },
-  { key: 'ip', label: 'IP', width: 126 },
-  { key: 'userAgent', label: '终端', width: 168 },
-  { key: 'result', label: '结果', width: 82 },
+  { key: 'createdAt', label: tr('log.time'), width: 158 },
+  { key: 'operatorName', label: tr('log.operator'), width: 150 },
+  { key: 'roleName', label: tr('log.role'), width: 82 },
+  { key: 'module', label: tr('log.module'), width: 88 },
+  { key: 'action', label: tr('log.action'), width: 116 },
+  { key: 'detail', label: tr('log.detail'), width: 320 },
+  { key: 'ip', label: tr('log.ip'), width: 126 },
+  { key: 'userAgent', label: tr('log.agent'), width: 168 },
+  { key: 'result', label: tr('log.result'), width: 82 },
 ])
 
 function switchTab(key) {
@@ -105,56 +123,56 @@ async function loadStats() {
 onMounted(loadStats)
 
 const kpis = computed(() => [
-  { label: '日志总数', value: thousands(stats.total), unit: '条', icon: 'log', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: '全量留痕，不可删除' },
-  { label: '今日操作数', value: thousands(stats.today), unit: '条', icon: 'activity', color: 'var(--c-accent)', bg: 'var(--c-accent-soft)', foot: `统计日期 ${stats.todayLabel || '—'}` },
-  { label: '失败操作数', value: thousands(stats.fail), unit: '条', icon: 'alert', color: 'var(--c-danger)', bg: 'var(--c-danger-soft)', foot: '登录失败 / 校验不通过' },
-  { label: '涉及操作人', value: thousands(stats.operators), unit: '人', icon: 'users', color: 'var(--c-purple)', bg: 'var(--c-purple-soft)', foot: '包含店长与收银员' },
+  { key: 'total', label: tr('log.kpiTotal'), value: thousands(stats.total), unit: tr('log.unitRecord'), icon: 'log', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: tr('log.kpiTotalFoot') },
+  { key: 'today', label: tr('log.kpiToday'), value: thousands(stats.today), unit: tr('log.unitRecord'), icon: 'activity', color: 'var(--c-accent)', bg: 'var(--c-accent-soft)', foot: tr('log.kpiTodayFoot', { date: stats.todayLabel || '—' }) },
+  { key: 'fail', label: tr('log.kpiFail'), value: thousands(stats.fail), unit: tr('log.unitRecord'), icon: 'alert', color: 'var(--c-danger)', bg: 'var(--c-danger-soft)', foot: tr('log.kpiFailFoot') },
+  { key: 'operators', label: tr('log.kpiOperators'), value: thousands(stats.operators), unit: tr('dashboard.unitPerson'), icon: 'users', color: 'var(--c-purple)', bg: 'var(--c-purple-soft)', foot: tr('log.kpiOperatorsFoot') },
 ])
 
 /* ------------------------------ 导出日志 ------------------------------ */
 async function onExport() {
   const rows = await t.fetchAll()
   if (!rows.length) {
-    toast.warning('当前筛选结果为空，没有可导出的日志')
+    toast.warning(tr('log.exportEmpty'))
     return
   }
   exportObjects(
-    `操作日志_${dateStr()}`,
+    `operation-logs_${dateStr()}`,
     [
-      ['createdAt', '时间'],
-      ['operatorName', '操作人'],
-      ['username', '账号'],
-      ['roleName', '角色'],
-      ['module', '模块'],
-      ['action', '操作动作'],
-      ['detail', '详情'],
-      ['ip', 'IP'],
-      ['userAgent', '终端'],
-      ['result', '结果', (r) => RESULT_STYLE[r.result]?.label || r.result],
+      ['createdAt', tr('log.time')],
+      ['operatorName', tr('log.operator')],
+      ['username', tr('user.username')],
+      ['roleName', tr('log.role')],
+      ['module', tr('log.module')],
+      ['action', tr('log.action')],
+      ['detail', tr('log.detail')],
+      ['ip', tr('log.ip')],
+      ['userAgent', tr('log.agent')],
+      ['result', tr('log.result'), (r) => RESULT_STYLE.value[r.result]?.label || r.result],
     ],
     rows,
   )
-  toast.ok(`已导出 ${rows.length} 条操作日志`)
+  toast.ok(tr('log.exportedOk', { n: rows.length }))
 }
 </script>
 
 <template>
   <PageShell>
     <PageHeader
-      title="操作日志"
-      desc="登录登出 / 商品与库存变动 / 开单退款 全量留痕，可按操作人、模块、结果与日期范围追溯"
+      :title="$t('log.title')"
+      :desc="$t('log.desc')"
       icon="log"
     >
       <template #actions>
-        <AppButton icon="download" @click="onExport">导出日志</AppButton>
+        <AppButton icon="download" @click="onExport">{{ $t('log.exportLogs') }}</AppButton>
       </template>
     </PageHeader>
 
     <div v-if="!isManager" class="card">
       <Empty
         icon="lock"
-        title="当前角色无权查看操作日志"
-        desc="操作日志属于店长专属模块，请使用店长账号（admin）登录后访问。"
+        :title="$t('log.noPermissionTitle')"
+        :desc="$t('log.noPermissionDesc')"
         :size="92"
       />
     </div>
@@ -169,7 +187,7 @@ async function onExport() {
             <div class="skeleton" style="height: 12px; width: 48%" />
           </div>
         </template>
-        <div v-for="k in kpis" v-else :key="k.label" class="kpi">
+        <div v-for="k in kpis" v-else :key="k.key" class="kpi">
           <div class="flex items-start justify-between">
             <div class="kpi-label">{{ k.label }}</div>
             <span
@@ -197,46 +215,46 @@ async function onExport() {
               :class="tab === tb.key && 'is-active'"
               @click="switchTab(tb.key)"
             >
-              {{ tb.label }}
+              {{ $t(tb.labelKey) }}
             </button>
           </div>
           <div class="text-[11.5px] text-text-3">
-            {{ tab === 'login' ? '仅展示「认证」模块的登录 / 登出记录' : '按时间倒序展示全部操作留痕' }}
+            {{ tab === 'login' ? $t('log.tabLoginHint') : $t('log.tabAllHint') }}
           </div>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
-          <FormField label="关键字" class="col-span-2">
+          <FormField :label="$t('common.keyword')" class="col-span-2">
             <SearchInput
               v-model="query.keyword"
-              placeholder="操作人 / 详情 / 动作"
+              :placeholder="$t('log.searchPlaceholder')"
               width="100%"
               @search="t.reload()"
               @enter="t.reload()"
             />
           </FormField>
-          <FormField label="模块">
+          <FormField :label="$t('log.module')">
             <select v-model="query.module" class="input w-full">
-              <option value="">全部模块</option>
-              <option v-for="m in modules" :key="m" :value="m">{{ m }}</option>
+              <option value="">{{ $t('log.modulePlaceholder') }}</option>
+              <option v-for="m in modules" :key="m" :value="m">{{ moduleText(m) }}</option>
             </select>
           </FormField>
-          <FormField label="操作结果">
+          <FormField :label="$t('log.result')">
             <select v-model="query.result" class="input w-full">
-              <option value="">全部结果</option>
-              <option value="success">成功</option>
-              <option value="fail">失败</option>
+              <option value="">{{ $t('log.resultPlaceholder') }}</option>
+              <option value="success">{{ $t('log.success') }}</option>
+              <option value="fail">{{ $t('log.failed') }}</option>
             </select>
           </FormField>
-          <FormField label="开始日期">
+          <FormField :label="$t('common.startDate')">
             <input v-model="query.startDate" type="date" class="input w-full" />
           </FormField>
-          <FormField label="结束日期">
+          <FormField :label="$t('common.endDate')">
             <input v-model="query.endDate" type="date" class="input w-full" />
           </FormField>
           <div class="flex items-center gap-2 col-span-2 md:col-span-3 xl:col-span-6 xl:justify-end">
-            <AppButton variant="primary" icon="search" @click="t.reload()">查询</AppButton>
-            <AppButton icon="refresh" @click="t.reset()">重置</AppButton>
+            <AppButton variant="primary" icon="search" @click="t.reload()">{{ $t('common.search') }}</AppButton>
+            <AppButton icon="refresh" @click="t.reset()">{{ $t('common.reset') }}</AppButton>
           </div>
         </div>
       </div>
@@ -245,12 +263,12 @@ async function onExport() {
       <div class="card mt-3">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">{{ tab === 'login' ? '登录登出记录' : '全部操作日志' }}</div>
-            <div class="text-[11.5px] text-text-3 mt-0.5">共 {{ total }} 条记录 · 失败操作以红色徽章标出</div>
+            <div class="text-[14px] font-semibold">{{ tab === 'login' ? $t('log.tabLogin') : $t('log.tabAll') }}</div>
+            <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('log.totalRecords', { n: total }) }}</div>
           </div>
           <div class="flex items-center gap-2 text-[11.5px] text-text-3">
             <Icon name="shieldCheck" :size="14" />
-            日志仅可查询与导出，不可编辑或删除
+            {{ $t('log.readOnlyTip') }}
           </div>
         </div>
 
@@ -259,8 +277,8 @@ async function onExport() {
           :list="list"
           :loading="loading"
           row-key="id"
-          empty-text="没有匹配的操作日志"
-          empty-hint="试试放宽日期范围，或清空关键字后重新查询"
+          :empty-text="$t('log.emptyList')"
+          :empty-hint="$t('log.emptyListHint')"
         >
           <template #cell-createdAt="{ row }">
             <span :title="fromNow(row.createdAt)">{{ row.createdAt }}</span>

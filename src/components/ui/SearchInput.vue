@@ -68,7 +68,7 @@ onBeforeUnmount(() => clearTimeout(timer))
     <button
       v-if="clearable && inner"
       class="absolute right-2 top-1/2 -translate-y-1/2 text-text-3 hover:text-text"
-      title="清空"
+      :title="$t('common.clear')"
       @click="clear"
     >
       <Icon name="close" :size="14" />

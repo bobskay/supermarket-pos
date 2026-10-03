@@ -31,9 +31,23 @@ export default defineConfig({
     port: 5178,
     host: '127.0.0.1',
     watch: {
-      // 这些目录是本地诊断工具与 Chrome 缓存产生的，绝不能进入文件监视：
-      // Chrome 会锁住自己的缓存文件，watcher 抛 EBUSY 会把 dev server 直接搞崩。
-      ignored: ['**/.diag-profile/**', '**/.verify-chrome/**', '**/.verify-chrome-profile/**', '**/dist/**'],
+      /**
+       * 这些路径绝不能进入文件监视：
+       *   · dist / public/products 产物目录，无需热更新
+       *   · 本地诊断工具与 Chrome 缓存目录
+       *   · **编辑器/工具写文件时的临时文件**（形如 .Xxx.vue.1234.abc.tmpdir/）： 
+       *     这类文件被写入方锁住，watcher 抛 EBUSY 会把 dev server 直接搞崩。
+       */
+      ignored: [
+        '**/dist/**',
+        '**/.diag-profile/**',
+        '**/.verify-chrome*/**',
+        '**/.*.tmpdir/**',
+        '**/*.tmpdir/**',
+        '**/*.tmp',
+        '**/*.swp',
+        '**/*.log',
+      ],
     },
   },
   build: {

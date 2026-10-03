@@ -55,7 +55,7 @@ onMounted(async () => {
         <button
           class="shrink-0 rounded-md overflow-hidden flex items-center justify-center"
           :style="{ width: '36px', height: '36px', background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }"
-          :title="`查看「${p.name}」完整图片`"
+          :title="$t('product.viewImage', { name: p.name })"
           @click.stop="emit('preview', p)"
         >
           <img
@@ -70,7 +70,7 @@ onMounted(async () => {
         </button>
 
         <!-- 商品信息：点击加车 -->
-        <button class="min-w-0 flex-1 text-left" :title="`加入购物车：${p.name}`" @click="emit('pick', p)">
+        <button class="min-w-0 flex-1 text-left" :title="$t('pos.addToCartName', { name: p.name })" @click="emit('pick', p)">
           <span class="flex items-center gap-1.5">
             <span
               class="w-[16px] h-[16px] rounded flex items-center justify-center text-[10px] font-semibold shrink-0"
@@ -84,20 +84,20 @@ onMounted(async () => {
           </span>
           <span class="flex items-center justify-between mt-0.5 text-[10.5px] text-text-3">
             <span class="font-mono truncate">{{ p.barcode }}</span>
-            <span class="shrink-0">销量 {{ p.qty }}{{ p.unit }}</span>
+            <span class="shrink-0">{{ $t('report.salesQty') }} {{ p.qty }}{{ p.unit }}</span>
           </span>
         </button>
 
         <button
           class="shrink-0 text-text-3 hover:text-primary"
-          title="加入购物车"
+          :title="$t('pos.addToCart')"
           @click.stop="emit('pick', p)"
         >
           <Icon name="plus" :size="15" />
         </button>
       </div>
 
-      <div v-if="!list.length" class="text-[11.5px] text-text-3 px-1">暂无热销数据，请使用扫码或搜索</div>
+      <div v-if="!list.length" class="text-[11.5px] text-text-3 px-1">{{ $t('pos.hotEmpty') }}</div>
     </template>
   </div>
 </template>

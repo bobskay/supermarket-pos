@@ -12,6 +12,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { memberApi } from '@/api'
 import { MEMBER_LEVEL_STYLE } from '@/utils/format'
 import { useToast } from '@/composables/useToast'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -21,23 +22,49 @@ import AppButton from '@/components/ui/AppButton.vue'
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const { t, tl } = useI18n()
 
-const LEVELS = [
-  { value: 'normal', label: '普通会员' },
-  { value: 'silver', label: '银卡会员' },
-  { value: 'gold', label: '金卡会员' },
-  { value: 'diamond', label: '钻石会员' },
-]
-const LEVEL_NAME = Object.fromEntries(LEVELS.map((l) => [l.value, l.label]))
-const PHONE_RE = /^1\d{10}$/
+/* --------------------- 等级码 → 字典文案 --------------------- */
+const LEVEL_KEY = {
+  normal: 'member.levelNormal',
+  silver: 'member.levelSilver',
+  gold: 'member.levelGold',
+  diamond: 'member.levelDiamond',
+}
+const LEVEL_NAME_KEY = {
+  '普通会员': 'member.levelNormal',
+  '银卡会员': 'member.levelSilver',
+  '金卡会员': 'member.levelGold',
+  '钻石会员': 'member.levelDiamond',
+}
+
+const LEVELS = computed(() => [
+  { value: 'normal', label: t('member.levelNormal') },
+  { value: 'silver', label: t('member.levelSilver') },
+  { value: 'gold', label: t('member.levelGold') },
+  { value: 'diamond', label: t('member.levelDiamond') },
+])
+
+/** 等级文案：优先按等级码取字典，缺码时按中文名反查，最后回退原值 */
+function levelText(rec) {
+  if (rec?.level && LEVEL_KEY[rec.level]) return t(LEVEL_KEY[rec.level])
+  const key = LEVEL_NAME_KEY[rec?.levelName]
+  return key ? t(key) : tl(rec, 'levelName')
+}
+
+function levelNameOf(code) {
+  return LEVEL_KEY[code] ? t(LEVEL_KEY[code]) : code
+}
 
 /** 等级权益：积分倍率与会员折扣（收银员可据此向顾客现场解释） */
-const BENEFITS = [
-  { level: 'normal', name: '普通会员', rate: '1x', discount: '无折扣', rule: '注册即享，消费 1 元累计 1 分' },
-  { level: 'silver', name: '银卡会员', rate: '1x', discount: '95 折', rule: '累计消费满 300 元可升级' },
-  { level: 'gold', name: '金卡会员', rate: '1.2x', discount: '95 折', rule: '累计消费满 1000 元可升级' },
-  { level: 'diamond', name: '钻石会员', rate: '1.5x', discount: '9 折', rule: '累计消费满 3000 元可升级' },
-]
+const BENEFITS = computed(() => [
+  { level: 'normal', name: t('member.levelNormal'), rate: '1x', discount: t('member.discountNone'), rule: t('member.ruleNormal') },
+  { level: 'silver', name: t('member.levelSilver'), rate: '1x', discount: t('member.discount95'), rule: t('member.ruleSilver') },
+  { level: 'gold', name: t('member.levelGold'), rate: '1.2x', discount: t('member.discount95'), rule: t('member.ruleGold') },
+  { level: 'diamond', name: t('member.levelDiamond'), rate: '1.5x', discount: t('member.discount90'), rule: t('member.ruleDiamond') },
+])
+
+const PHONE_RE = /^1\d{10}$/
 
 /** 会员号：VIP + 5 位数字，前端生成并只读（演示环境里的「后端自动编号」） */
 function genMemberNo() {
@@ -116,9 +143,9 @@ onMounted(loadMember)
 
 /* ------------------------------ 保存 ------------------------------ */
 function validate() {
-  errors.name = form.name.trim() ? '' : '请输入会员姓名'
-  errors.phone = PHONE_RE.test(form.phone.trim()) ? '' : '请输入 11 位有效手机号'
-  if (dupMember.value) errors.phone = '该手机号已注册会员，请勿重复开卡'
+  errors.name = form.name.trim() ? '' : t('member.nameRequired')
+  errors.phone = PHONE_RE.test(form.phone.trim()) ? '' : t('member.phoneInvalid')
+  if (dupMember.value) errors.phone = t('member.phoneDuplicateWarn')
   return !errors.name && !errors.phone
 }
 
@@ -129,7 +156,7 @@ function payload() {
     phone: form.phone.trim(),
     gender: form.gender,
     level: form.level,
-    levelName: LEVEL_NAME[form.level],
+    levelName: levelNameOf(form.level),
     remark: form.remark.trim(),
   }
 }
@@ -147,22 +174,22 @@ function resetForNext() {
 async function save(continueNext = false) {
   if (saving.value) return
   if (!validate()) {
-    toast.warning('请先修正表单中标红的内容')
+    toast.warning(t('member.fixErrors'))
     return
   }
   saving.value = true
   try {
     if (isEdit.value) {
       const res = await memberApi.update(editingId.value, payload())
-      toast.ok(res.message || '会员信息已更新')
+      toast.ok(res.message || t('member.updateOk'))
       router.push({ name: 'member-detail', params: { id: editingId.value } })
       return
     }
     const res = await memberApi.create(payload())
-    toast.ok(res.message || '会员创建成功')
+    toast.ok(res.message || t('member.createOk'))
     if (continueNext) {
       resetForNext()
-      toast.info('已清空表单，可继续录入下一位会员')
+      toast.info(t('member.formCleared'))
     } else {
       router.push({ name: 'members' })
     }
@@ -175,14 +202,14 @@ async function save(continueNext = false) {
 <template>
   <PageShell>
     <PageHeader
-      :title="isEdit ? '编辑会员' : '新建会员'"
-      :desc="isEdit ? '修改会员基础资料与等级，会员号不可变更' : '录入姓名与手机号即可开卡，会员号由系统自动生成'"
+      :title="isEdit ? $t('member.editMember') : $t('member.newMember')"
+      :desc="isEdit ? $t('member.editDesc') : $t('member.createDesc')"
       icon="members"
     >
       <template #actions>
-        <AppButton icon="arrowLeft" @click="router.push({ name: 'members' })">取消</AppButton>
+        <AppButton icon="arrowLeft" @click="router.push({ name: 'members' })">{{ $t('common.cancel') }}</AppButton>
         <AppButton variant="primary" icon="plus" :loading="saving" @click="save(true)">
-          保存并继续新建
+          {{ $t('member.saveAndContinue') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -192,13 +219,13 @@ async function save(continueNext = false) {
       <div class="card">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">会员资料</div>
+            <div class="text-[14px] font-semibold">{{ $t('member.profileTitle') }}</div>
             <div class="text-[11.5px] text-text-3 mt-0.5">
-              带 <span style="color: var(--c-danger)">*</span> 为必填项
+              {{ $t('member.requiredPrefix') }}<span style="color: var(--c-danger)">*</span>{{ $t('member.requiredSuffix') }}
             </div>
           </div>
           <span class="badge" :class="isEdit ? 'badge-warning' : 'badge-primary'">
-            {{ isEdit ? '编辑模式' : '新建模式' }}
+            {{ isEdit ? $t('member.editMode') : $t('member.createMode') }}
           </span>
         </div>
 
@@ -210,33 +237,33 @@ async function save(continueNext = false) {
           </template>
 
           <div v-else class="grid grid-cols-2 gap-3">
-            <FormField label="会员号" hint="系统自动生成，不可修改">
+            <FormField :label="$t('member.memberNo')" :hint="$t('member.memberNoAuto')">
               <input class="input w-full font-mono" :value="form.memberNo" disabled />
             </FormField>
-            <FormField label="姓名" required :error="errors.name">
-              <input v-model="form.name" class="input w-full" placeholder="请输入会员姓名" />
+            <FormField :label="$t('member.name')" required :error="errors.name">
+              <input v-model="form.name" class="input w-full" :placeholder="$t('member.namePlaceholder')" />
             </FormField>
 
             <FormField
-              label="手机号"
+              :label="$t('member.phone')"
               required
               :error="errors.phone"
-              :hint="checking ? '正在检查该手机号…' : '11 位手机号，收银台按手机号检索会员'"
+              :hint="checking ? $t('member.phoneChecking') : $t('member.phoneHint')"
             >
               <input
                 v-model="form.phone"
                 class="input w-full"
                 maxlength="11"
                 inputmode="numeric"
-                placeholder="请输入 11 位手机号"
+                :placeholder="$t('member.phonePlaceholder11')"
                 @input="onPhoneInput"
                 @blur="checkPhone"
               />
             </FormField>
-            <FormField label="性别">
+            <FormField :label="$t('member.gender')">
               <select v-model="form.gender" class="input w-full">
-                <option value="male">男</option>
-                <option value="female">女</option>
+                <option value="male">{{ $t('member.male') }}</option>
+                <option value="female">{{ $t('member.female') }}</option>
               </select>
             </FormField>
 
@@ -248,32 +275,33 @@ async function save(continueNext = false) {
             >
               <Icon name="alert" :size="15" />
               <span class="flex-1">
-                该手机号已注册会员 <b>{{ dupMember.name }}</b>（{{ dupMember.memberNo }} · {{ dupMember.levelName }}）
+                {{ $t('member.phoneDuplicate', { name: dupMember.name }) }}
+                （{{ dupMember.memberNo }} · {{ levelText(dupMember) }}）
               </span>
-              <button class="underline" @click="goDupMember">查看该会员</button>
+              <button class="underline" @click="goDupMember">{{ $t('member.viewThatMember') }}</button>
             </div>
 
-            <FormField label="会员等级" span="2" hint="等级决定积分倍率与折扣，保存后可在会员详情中调整">
+            <FormField :label="$t('member.levelLabel')" span="2" :hint="$t('member.levelHintFull')">
               <select v-model="form.level" class="input w-full">
                 <option v-for="l in LEVELS" :key="l.value" :value="l.value">{{ l.label }}</option>
               </select>
             </FormField>
 
-            <FormField label="备注" span="2">
+            <FormField :label="$t('common.remark')" span="2">
               <textarea
                 v-model="form.remark"
                 class="w-full"
                 rows="3"
-                placeholder="如：企业客户、送货上门、忌口备注等"
+                :placeholder="$t('member.remarkPlaceholderFull')"
               />
             </FormField>
           </div>
         </div>
 
         <div class="px-4 py-3 border-t border-line flex items-center justify-end gap-2">
-          <AppButton @click="router.push({ name: 'members' })">取消</AppButton>
+          <AppButton @click="router.push({ name: 'members' })">{{ $t('common.cancel') }}</AppButton>
           <AppButton variant="primary" icon="save" :loading="saving" @click="save(false)">
-            {{ isEdit ? '保存修改' : '保存会员' }}
+            {{ isEdit ? $t('member.saveEdit') : $t('member.saveMember') }}
           </AppButton>
         </div>
       </div>
@@ -283,8 +311,8 @@ async function save(continueNext = false) {
         <div class="card">
           <div class="panel-head">
             <div>
-              <div class="text-[14px] font-semibold">会员权益说明</div>
-              <div class="text-[11.5px] text-text-3 mt-0.5">当前选中等级已高亮</div>
+              <div class="text-[14px] font-semibold">{{ $t('member.benefitTitle') }}</div>
+              <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('member.benefitHighlight') }}</div>
             </div>
             <Icon name="gift" :size="16" class="text-text-3" />
           </div>
@@ -292,9 +320,9 @@ async function save(continueNext = false) {
           <table class="table-flat">
             <thead>
               <tr>
-                <th>等级</th>
-                <th class="text-center">积分倍率</th>
-                <th class="text-right">会员折扣</th>
+                <th>{{ $t('member.benefitLevel') }}</th>
+                <th class="text-center">{{ $t('member.benefitPoints') }}</th>
+                <th class="text-right">{{ $t('member.benefitMemberDiscount') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -342,9 +370,8 @@ async function save(continueNext = false) {
           <div class="flex items-start gap-2 text-[12px] text-text-3 leading-relaxed">
             <Icon name="info" :size="15" class="mt-0.5 shrink-0" />
             <div>
-              <div class="text-text-2 font-medium mb-1">温馨提示</div>
-              保存后可在会员管理中查询、编辑与查看消费记录。会员号由系统自动编号，
-              手机号是会员的唯一识别依据，务必核对无误。
+              <div class="text-text-2 font-medium mb-1">{{ $t('common.tip') }}</div>
+              {{ $t('member.formTip') }}
             </div>
           </div>
         </div>

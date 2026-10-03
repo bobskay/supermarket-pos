@@ -49,8 +49,8 @@ function changeSize(e) {
 <template>
   <div class="flex items-center justify-between gap-3 flex-wrap">
     <div class="text-xs text-text-3">
-      共 <span class="text-text num font-medium">{{ total }}</span> 条
-      <span v-if="total">· 当前 {{ from }}-{{ to }}</span>
+      {{ $t('common.total') }} <span class="text-text num font-medium">{{ total }}</span> {{ $t('common.items') }}
+      <span v-if="total">· {{ $t('common.current') }} {{ from }}-{{ to }}</span>
     </div>
 
     <div class="flex items-center gap-2">
@@ -60,7 +60,7 @@ function changeSize(e) {
         :value="pageSize"
         @change="changeSize"
       >
-        <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} 条/页</option>
+        <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} {{ $t('common.perPage') }}</option>
       </select>
 
       <div class="flex items-center gap-1">

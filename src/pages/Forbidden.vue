@@ -2,12 +2,14 @@
 /** 403：角色权限不足 */
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const route = useRoute()
 const { roleName, user } = useAuth()
+const { t, tl } = useI18n()
 </script>
 
 <template>
@@ -20,10 +22,9 @@ const { roleName, user } = useAuth()
         <Icon name="lock" :size="28" />
       </div>
       <div class="text-[40px] font-semibold tracking-tight" :style="{ color: 'var(--c-text-3)' }">403</div>
-      <h1 class="text-[18px] font-semibold mt-1">当前角色无权访问该模块</h1>
+      <h1 class="text-[18px] font-semibold mt-1">{{ $t('forbidden.title') }}</h1>
       <p class="text-[13px] text-text-2 mt-2 leading-relaxed">
-        你正以「{{ roleName }}」身份登录（{{ user?.name }}）。<br />
-        该功能仅对店长开放，如需操作请使用店长账号，或联系门店管理员调整权限。
+        {{ $t('forbidden.desc', { role: roleName, name: user?.name }) }}
       </p>
       <div
         v-if="route.query.from"
@@ -33,8 +34,8 @@ const { roleName, user } = useAuth()
         {{ route.query.from }}
       </div>
       <div class="flex items-center justify-center gap-2 mt-6">
-        <AppButton icon="arrowLeft" @click="router.back()">返回上一页</AppButton>
-        <AppButton variant="primary" icon="cart" @click="router.replace({ name: 'pos' })">进入收银台</AppButton>
+        <AppButton icon="arrowLeft" @click="router.back()">{{ $t('forbidden.back') }}</AppButton>
+        <AppButton variant="primary" icon="cart" @click="router.replace({ name: 'pos' })">{{ $t('forbidden.goPos') }}</AppButton>
       </div>
     </div>
   </div>

@@ -18,6 +18,7 @@ import { productApi, memberApi, orderApi, settingApi } from '@/api'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
+import { useI18n } from '@/i18n'
 import { money, calc, genNo, debounce } from '@/utils/format'
 import { productImage } from '@/utils/product-image'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -34,6 +35,7 @@ import PaymentPanel from './PaymentPanel.vue'
 const { user, isManager } = useAuth()
 const toast = useToast()
 const confirm = useConfirm()
+const { t } = useI18n()
 
 /* ============================== 基础状态 ============================== */
 const barcodeInput = ref(null)
@@ -204,9 +206,9 @@ async function onScanEnter() {
       searchResult.value = []
       searchKeyword.value = ''
     } else if (!found.length) {
-      toast.error(`条码 ${code} 无对应商品，按名称也未找到`)
+      toast.error(t('pos.scanNotFound', { code }))
     } else {
-      toast.warning(`未找到条码 ${code}，已列出 ${found.length} 个名称相近的商品`)
+      toast.warning(t('pos.scanFallback', { code, n: found.length }))
     }
   } finally {
     focusScan()
@@ -259,20 +261,20 @@ function stepQty(item, delta) {
 function removeItem(item) {
   const i = cart.value.findIndex((x) => x.productId === item.productId)
   if (i > -1) cart.value.splice(i, 1)
-  toast.info(`已移除：${item.name}`)
+  toast.info(t('pos.removed', { name: item.name }))
 }
 
 async function clearCart() {
   if (!cart.value.length) return
   const okClear = await confirm({
-    title: '清空购物车',
-    content: `将移除 ${cart.value.length} 种商品（共 ${itemCount.value} 件），确定继续？`,
+    title: t('pos.clearTitle'),
+    content: t('pos.clearConfirm', { kinds: cart.value.length, pieces: itemCount.value }),
     danger: true,
-    confirmText: '清空',
+    confirmText: t('pos.clear'),
   })
   if (!okClear) return
   resetDraft()
-  toast.ok('购物车已清空')
+  toast.ok(t('pos.cartCleared'))
   focusScan()
 }
 
@@ -294,16 +296,22 @@ async function searchMember() {
   try {
     const res = await memberApi.search(kw)
     if (!res.data) {
-      toast.warning(`未找到会员「${kw}」，可在右侧点「新建」现场建档`)
+      toast.warning(t('pos.memberNotFound', { kw }))
       return
     }
     if (res.data.status !== 'active') {
-      toast.error(`会员「${res.data.name}」已注销，不能绑定`)
+      toast.error(t('pos.memberDisabled', { name: res.data.name }))
       return
     }
     member.value = res.data
     memberKeyword.value = ''
-    toast.success(`已绑定会员：${res.data.name}（${res.data.levelName}，积分 ${res.data.points}）`)
+    toast.success(
+      t('pos.memberBound', {
+        name: res.data.name,
+        level: res.data.levelName,
+        points: res.data.points,
+      }),
+    )
   } catch (e) {
     toast.error(e.message)
   } finally {
@@ -314,7 +322,7 @@ async function searchMember() {
 function unbindMember() {
   member.value = null
   usePoints.value = false
-  toast.info('已取消会员绑定，本单按普通订单结算')
+  toast.info(t('pos.memberUnbound'))
 }
 
 function openQuickMember() {
@@ -325,8 +333,8 @@ function openQuickMember() {
 }
 
 async function saveQuickMember() {
-  if (!quickMember.name.trim()) return toast.error('请输入会员姓名')
-  if (!/^1\d{10}$/.test(quickMember.phone.trim())) return toast.error('请输入正确的 11 位手机号')
+  if (!quickMember.name.trim()) return toast.error(t('pos.needName'))
+  if (!/^1\d{10}$/.test(quickMember.phone.trim())) return toast.error(t('pos.needPhone'))
   quickMemberSaving.value = true
   try {
     await memberApi.create({ name: quickMember.name.trim(), phone: quickMember.phone.trim(), gender: quickMember.gender })
@@ -343,7 +351,7 @@ async function saveQuickMember() {
       status: 'active',
     }
     quickMember.visible = false
-    toast.ok('会员创建成功，已自动绑定到本单')
+    toast.ok(t('pos.quickMemberOk'))
   } finally {
     quickMemberSaving.value = false
   }
@@ -389,7 +397,7 @@ async function loadHolds() {
 }
 
 async function holdOrder() {
-  if (!cart.value.length) return toast.warning('购物车为空，无需挂单')
+  if (!cart.value.length) return toast.warning(t('pos.cartEmptyHold'))
   await orderApi.createHold({
     memberId: member.value?.id || '',
     items: cart.value,
@@ -409,12 +417,12 @@ async function holdOrder() {
     createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
   })
   resetDraft()
-  toast.ok('挂单成功，可在「取单」里继续结算')
+  toast.ok(t('pos.holdOk'))
 }
 
 /** 取单：演示环境用示例商品还原购物车，保证可以继续演示 */
 async function takeHold(h) {
-  const okTake = await confirm({ title: '取单', content: `确认取回挂单 ${h.holdNo} 并继续结算？` })
+  const okTake = await confirm({ title: t('pos.take'), content: t('pos.takeConfirm', { no: h.holdNo }) })
   if (!okTake) return
   const res = await productApi.list({ status: 'active', pageSize: 3 })
   cart.value = (res.data.list || []).slice(0, 3).map((p) => ({
@@ -439,22 +447,26 @@ async function takeHold(h) {
   await orderApi.removeHold(h.id)
   holds.value = holds.value.filter((x) => x.id !== h.id)
   holdDrawer.value = false
-  toast.ok('已取单，购物车已还原')
+  toast.ok(t('pos.takeOk'))
   focusScan()
 }
 
 async function removeHold(h) {
-  const okDel = await confirm({ title: '删除挂单', content: `确定删除挂单 ${h.holdNo}？删除后无法恢复。`, danger: true })
+  const okDel = await confirm({
+    title: t('common.deleteConfirm'),
+    content: t('pos.holdDeleteConfirm', { no: h.holdNo }),
+    danger: true,
+  })
   if (!okDel) return
   await orderApi.removeHold(h.id)
   holds.value = holds.value.filter((x) => x.id !== h.id)
-  toast.ok('挂单已删除')
+  toast.ok(t('pos.holdDeleted'))
 }
 
 /* ============================== 结算 ============================== */
 function openPay() {
   if (!cart.value.length) {
-    toast.warning('购物车为空，请先扫码加入商品')
+    toast.warning(t('pos.cartEmptyWarn'))
     focusScan()
     return
   }
@@ -464,7 +476,7 @@ function openPay() {
 async function submitOrder(printAfter = false) {
   const payload = payPanel.value?.getPayload()
   if (!payload?.settled) {
-    toast.error('收款金额与应收金额不一致，请先补齐')
+    toast.error(t('pos.payMismatch'))
     return
   }
   submitting.value = true
@@ -494,7 +506,7 @@ async function submitOrder(printAfter = false) {
       status: 'paid',
       statusName: '已结算',
       type: member.value ? 'member' : 'normal',
-      typeName: member.value ? '会员订单' : '普通订单',
+      typeName: member.value ? t('pos.memberOrder') : t('pos.normalOrder'),
       memberLevelName: member.value?.levelName || '',
       cashierName: user.value?.name,
       createdAt: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
@@ -504,11 +516,12 @@ async function submitOrder(printAfter = false) {
     payModal.value = false
     receiptModal.value = true
     toast.ok(
-      `结算成功，实收 ${money(payable.value)}` + (payload.change > 0 ? `，找零 ${money(payload.change)}` : ''),
+      t('pos.settleOk', { amount: money(payable.value) }) +
+        (payload.change > 0 ? t('pos.changeOk', { amount: money(payload.change) }) : ''),
     )
     if (printAfter) {
       await orderApi.print(lastOrder.value.id)
-      toast.info('小票已发送至打印机（模拟）')
+      toast.info(t('pos.printSent'))
     }
   } finally {
     submitting.value = false
@@ -583,16 +596,16 @@ onMounted(async () => {
 
 onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 
-/* 挂单表格列 */
-const holdColumns = [
-  { key: 'holdNo', label: '挂单号', width: 128 },
-  { key: 'memberName', label: '会员', width: 78 },
-  { key: 'itemCount', label: '件数', width: 58, align: 'right' },
-  { key: 'amount', label: '金额', width: 84, align: 'right' },
-  { key: 'operatorName', label: '操作员', width: 72 },
-  { key: 'createdAt', label: '挂单时间', width: 150 },
-  { key: 'actions', label: '操作', width: 130, align: 'right' },
-]
+/* 挂单表格列：用 computed 包一层，切换语言时会自动重算 */
+const holdColumns = computed(() => [
+  { key: 'holdNo', label: t('pos.holdNo'), width: 128 },
+  { key: 'memberName', label: t('pos.memberLabel'), width: 78 },
+  { key: 'itemCount', label: t('order.items'), width: 58, align: 'right' },
+  { key: 'amount', label: t('common.amount'), width: 84, align: 'right' },
+  { key: 'operatorName', label: t('common.operator'), width: 72 },
+  { key: 'createdAt', label: t('pos.holdTime'), width: 150 },
+  { key: 'actions', label: t('common.actions'), width: 130, align: 'right' },
+])
 </script>
 
 <template>
@@ -611,7 +624,7 @@ const holdColumns = [
             <Icon name="scan" :size="15" />
           </span>
           <div>
-            <div class="text-[13.5px] font-semibold leading-tight">收银开单</div>
+            <div class="text-[13.5px] font-semibold leading-tight">{{ $t('pos.title') }}</div>
             <div class="text-[10.5px] text-text-3 leading-tight font-mono">{{ draftOrderNo }}</div>
           </div>
         </div>
@@ -620,28 +633,28 @@ const holdColumns = [
 
         <div class="flex items-center gap-1.5 text-[12px] text-text-2">
           <Icon name="user" :size="13" />
-          收银员 <span class="font-medium text-text">{{ user?.name }}</span>
+          {{ $t('pos.cashier') }} <span class="font-medium text-text">{{ user?.name }}</span>
         </div>
         <div class="hidden sm:flex items-center gap-1.5 text-[12px] text-text-2">
           <Icon name="clock" :size="13" />
-          {{ new Date().toLocaleDateString('zh-CN') }} 当班
+          {{ new Date().toLocaleDateString('zh-CN') }} {{ $t('pos.onDuty') }}
         </div>
 
         <div class="flex-1" />
 
         <div class="hidden xl:flex items-center gap-2.5 text-[11.5px] text-text-3">
-          <span class="flex items-center gap-1"><kbd class="kbd">F1</kbd>扫码</span>
-          <span class="flex items-center gap-1"><kbd class="kbd">F2</kbd>结算</span>
-          <span class="flex items-center gap-1"><kbd class="kbd">F4</kbd>清空</span>
-          <span class="flex items-center gap-1"><kbd class="kbd">F9</kbd>挂单</span>
-          <span class="flex items-center gap-1"><kbd class="kbd">F8</kbd>取单</span>
+          <span class="flex items-center gap-1"><kbd class="kbd">F1</kbd>{{ $t('pos.scan') }}</span>
+          <span class="flex items-center gap-1"><kbd class="kbd">F2</kbd>{{ $t('pos.checkout') }}</span>
+          <span class="flex items-center gap-1"><kbd class="kbd">F4</kbd>{{ $t('pos.clear') }}</span>
+          <span class="flex items-center gap-1"><kbd class="kbd">F9</kbd>{{ $t('pos.hold') }}</span>
+          <span class="flex items-center gap-1"><kbd class="kbd">F8</kbd>{{ $t('pos.takeHold') }}</span>
         </div>
 
         <AppButton size="sm" variant="default" icon="hold" @click="holdDrawer = true">
-          取单
+          {{ $t('pos.takeHold') }}
           <span v-if="holds.length" class="ml-1 badge badge-primary">{{ holds.length }}</span>
         </AppButton>
-        <AppButton size="sm" variant="default" icon="save" @click="holdOrder">挂单</AppButton>
+        <AppButton size="sm" variant="default" icon="save" @click="holdOrder">{{ $t('pos.hold') }}</AppButton>
       </div>
 
       <!-- ============ 三栏主体 ============ -->
@@ -655,9 +668,9 @@ const holdColumns = [
           <div class="p-3 border-b border-line">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-[12px] text-text-2 font-medium flex items-center gap-1.5">
-                <Icon name="barcode" :size="14" />扫码 / 输入条码
+                <Icon name="barcode" :size="14" />{{ $t('pos.scanTitle') }}
               </span>
-              <span class="text-[10.5px] text-text-3">回车入车</span>
+              <span class="text-[10.5px] text-text-3">{{ $t('pos.enterToAdd') }}</span>
             </div>
             <div class="relative">
               <Icon name="scan" :size="15" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3" />
@@ -665,7 +678,7 @@ const holdColumns = [
                 ref="barcodeInput"
                 v-model="scanText"
                 class="input w-full pl-8 font-mono"
-                placeholder="扫码枪扫描，或手工输入条码"
+                :placeholder="$t('pos.scanPlaceholder')"
                 @keyup.enter="onScanEnter"
               />
             </div>
@@ -681,7 +694,7 @@ const holdColumns = [
               </button>
             </div>
             <div v-if="sampleBarcodes.length" class="text-[10.5px] text-text-3 mt-1.5">
-              示例条码：点击可直接带出商品
+              {{ $t('pos.sampleBarcode') }}
             </div>
           </div>
 
@@ -689,13 +702,13 @@ const holdColumns = [
           <div class="p-3 border-b border-line">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-[12px] text-text-2 font-medium flex items-center gap-1.5">
-                <Icon name="search" :size="14" />商品名称搜索
+                <Icon name="search" :size="14" />{{ $t('pos.nameSearch') }}
               </span>
-              <span class="text-[10.5px] text-text-3">条码损坏时用</span>
+              <span class="text-[10.5px] text-text-3">{{ $t('pos.nameSearchHint') }}</span>
             </div>
             <div class="relative">
               <Icon name="search" :size="15" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3" />
-              <input v-model="searchKeyword" class="input w-full pl-8" placeholder="输入商品名称关键字" />
+              <input v-model="searchKeyword" class="input w-full pl-8" :placeholder="$t('pos.nameSearchPlaceholder')" />
             </div>
           </div>
 
@@ -708,7 +721,9 @@ const holdColumns = [
               </div>
 
               <template v-else-if="searchResult.length">
-                <div class="text-[11px] text-text-3 px-1 mb-1.5">找到 {{ searchResult.length }} 个商品</div>
+                <div class="text-[11px] text-text-3 px-1 mb-1.5">
+                  {{ $t('pos.foundProducts', { n: searchResult.length }) }}
+                </div>
                 <button
                   v-for="p in searchResult"
                   :key="p.id"
@@ -732,7 +747,7 @@ const holdColumns = [
                     <span class="flex items-center justify-between mt-1 text-[11px] text-text-3">
                       <span class="font-mono">{{ p.barcode }}</span>
                       <!-- 库存属于店长数据，收银员登录时不展示 -->
-                      <span v-if="isManager">库存 {{ p.stock }}{{ p.unit }}</span>
+                      <span v-if="isManager">{{ $t('product.stock') }} {{ p.stock }}{{ p.unit }}</span>
                     </span>
                   </span>
                 </button>
@@ -741,15 +756,15 @@ const holdColumns = [
               <Empty
                 v-else
                 icon="search"
-                title="没有匹配的商品"
-                desc="试试更短的关键字，或改用条码扫描"
+                :title="$t('pos.noMatch')"
+                :desc="$t('pos.noMatchDesc')"
                 :size="56"
               />
             </div>
 
             <!-- 未搜索时：热销榜独立滚动，避免把扫码框顶出可视区域 -->
             <div v-else class="flex-1 min-h-0 overflow-y-auto scroll-thin p-2">
-              <div class="text-[11px] text-text-3 px-1 mb-1.5">热销商品快捷加车</div>
+              <div class="text-[11px] text-text-3 px-1 mb-1.5">{{ $t('pos.hotProducts') }}</div>
               <HotProducts @pick="pickHot" @preview="previewProduct" />
             </div>
           </div>
@@ -761,17 +776,24 @@ const holdColumns = [
             class="shrink-0 flex items-center gap-2 px-3 h-[38px] border-b border-line"
             :style="{ background: 'var(--c-surface)' }"
           >
-            <span class="text-[13px] font-semibold">购物车</span>
-            <span class="badge badge-primary">{{ cart.length }} 种 / {{ itemCount }} 件</span>
+            <span class="text-[13px] font-semibold">{{ $t('pos.cart') }}</span>
+            <span class="badge badge-primary">
+              {{ $t('pos.kinds', { n: cart.length }) }} / {{ $t('pos.pieces', { n: itemCount }) }}
+            </span>
             <div class="flex-1" />
             <button class="text-[12px] text-text-2 hover:text-danger flex items-center gap-1" @click="clearCart">
-              <Icon name="trash" :size="13" />清空
+              <Icon name="trash" :size="13" />{{ $t('pos.clear') }}
             </button>
           </div>
 
           <div v-if="!cart.length" class="flex-1 flex items-center justify-center">
-            <Empty icon="cart" title="购物车是空的" desc="用扫码枪扫描条码，或在左侧搜索商品名称、点击热销商品加入" :size="86">
-              <AppButton variant="soft" icon="scan" @click="focusScan">聚焦扫码框</AppButton>
+            <Empty
+              icon="cart"
+              :title="$t('pos.cartEmpty')"
+              :desc="$t('pos.cartEmptyDesc')"
+              :size="86"
+            >
+              <AppButton variant="soft" icon="scan" @click="focusScan">{{ $t('pos.focusScan') }}</AppButton>
             </Empty>
           </div>
 
@@ -780,10 +802,10 @@ const holdColumns = [
               <thead>
                 <tr>
                   <th style="width: 34px">#</th>
-                  <th>商品</th>
-                  <th style="width: 92px; text-align: right">单价</th>
-                  <th style="width: 130px; text-align: center">数量</th>
-                  <th style="width: 96px; text-align: right">小计</th>
+                  <th>{{ $t('pos.item') }}</th>
+                  <th style="width: 92px; text-align: right">{{ $t('pos.price') }}</th>
+                  <th style="width: 130px; text-align: center">{{ $t('pos.qty') }}</th>
+                  <th style="width: 96px; text-align: right">{{ $t('pos.subtotal') }}</th>
                   <th style="width: 46px"></th>
                 </tr>
               </thead>
@@ -804,14 +826,14 @@ const holdColumns = [
                         class="ml-1.5"
                         :style="{ color: 'var(--c-warning)' }"
                       >
-                        · 库存仅 {{ it.stock }}{{ it.unit }}
+                        {{ $t('pos.stockOnlyLeft', { n: it.stock, unit: it.unit }) }}
                       </span>
                     </div>
                   </td>
                   <td class="text-right num">{{ money(it.price) }}</td>
                   <td>
                     <div class="flex items-center justify-center gap-1">
-                      <button class="qty-btn" title="减少" @click="stepQty(it, -1)">
+                      <button class="qty-btn" :title="$t('common.decrease')" @click="stepQty(it, -1)">
                         <Icon name="minus" :size="13" />
                       </button>
                       <input
@@ -821,7 +843,7 @@ const holdColumns = [
                         @keyup.up="stepQty(it, 1)"
                         @keyup.down="stepQty(it, -1)"
                       />
-                      <button class="qty-btn" title="增加" @click="stepQty(it, 1)">
+                      <button class="qty-btn" :title="$t('common.increase')" @click="stepQty(it, 1)">
                         <Icon name="plus" :size="13" />
                       </button>
                       <span class="text-[11px] text-text-3 w-4">{{ it.unit }}</span>
@@ -829,7 +851,7 @@ const holdColumns = [
                   </td>
                   <td class="text-right price">{{ money(it.price * it.qty) }}</td>
                   <td class="text-center">
-                    <button class="text-text-3 hover:text-danger" title="移除该商品" @click="removeItem(it)">
+                    <button class="text-text-3 hover:text-danger" :title="$t('pos.removeItem')" @click="removeItem(it)">
                       <Icon name="trash" :size="14" />
                     </button>
                   </td>
@@ -843,7 +865,7 @@ const holdColumns = [
                 <input
                   v-model="remark"
                   class="input flex-1"
-                  placeholder="订单备注（选填）"
+                  :placeholder="$t('pos.orderRemark')"
                 />
               </div>
             </div>
@@ -860,10 +882,10 @@ const holdColumns = [
             <div class="card card-pad" :style="{ background: 'var(--c-surface-2)' }">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-[12.5px] font-semibold flex items-center gap-1.5">
-                  <Icon name="members" :size="14" />会员绑定
+                  <Icon name="members" :size="14" />{{ $t('pos.memberBind') }}
                 </span>
                 <span class="badge" :class="member ? 'badge-primary' : 'badge-muted'">
-                  {{ member ? '会员订单' : '普通订单' }}
+                  {{ member ? $t('pos.memberOrder') : $t('pos.normalOrder') }}
                 </span>
               </div>
 
@@ -885,22 +907,22 @@ const holdColumns = [
                       {{ member.memberNo }} · {{ member.phone }}
                     </div>
                   </div>
-                  <button class="text-text-3 hover:text-danger shrink-0" title="取消绑定" @click="unbindMember">
+                  <button class="text-text-3 hover:text-danger shrink-0" :title="$t('pos.unbind')" @click="unbindMember">
                     <Icon name="close" :size="14" />
                   </button>
                 </div>
 
                 <div class="grid grid-cols-3 gap-2 mt-2.5">
                   <div class="text-center py-1.5 rounded-md" :style="{ background: 'var(--c-surface)' }">
-                    <div class="text-[11px] text-text-3">积分</div>
+                    <div class="text-[11px] text-text-3">{{ $t('pos.points') }}</div>
                     <div class="text-[13.5px] font-semibold num">{{ member.points }}</div>
                   </div>
                   <div class="text-center py-1.5 rounded-md" :style="{ background: 'var(--c-surface)' }">
-                    <div class="text-[11px] text-text-3">余额</div>
+                    <div class="text-[11px] text-text-3">{{ $t('pos.balance') }}</div>
                     <div class="text-[13.5px] font-semibold num">{{ money(member.balance) }}</div>
                   </div>
                   <div class="text-center py-1.5 rounded-md" :style="{ background: 'var(--c-surface)' }">
-                    <div class="text-[11px] text-text-3">本单省</div>
+                    <div class="text-[11px] text-text-3">{{ $t('pos.savedThisOrder') }}</div>
                     <div class="text-[13.5px] font-semibold num" :style="{ color: 'var(--c-success)' }">
                       {{ money(memberDiscount + pointsDiscount) }}
                     </div>
@@ -914,12 +936,12 @@ const holdColumns = [
                   @click="usePoints = !usePoints"
                 >
                   <span class="text-left min-w-0">
-                    <span class="block text-[12.5px]">使用积分抵扣</span>
+                    <span class="block text-[12.5px]">{{ $t('pos.usePoints') }}</span>
                     <span class="block text-[11px] text-text-3 truncate">
                       {{
                         canUsePoints
-                          ? `可用 ${member.points} 分，最多抵 ${money(maxPointsDeduct)}`
-                          : `积分不足（${pointsRate} 分抵扣 1 元）`
+                          ? $t('pos.pointsAvailable', { points: member.points, amount: money(maxPointsDeduct) })
+                          : $t('pos.pointsNotEnough', { rate: pointsRate })
                       }}
                     </span>
                   </span>
@@ -934,39 +956,41 @@ const holdColumns = [
                   <input
                     v-model="memberKeyword"
                     class="input w-full pl-8"
-                    placeholder="手机号 / 会员号，回车查询"
+                    :placeholder="$t('pos.memberPlaceholder')"
                     @keyup.enter="searchMember"
                   />
                 </div>
                 <div class="flex items-center gap-2 mt-2">
                   <AppButton size="sm" variant="soft" block :loading="memberSearching" @click="searchMember">
-                    查询会员
+                    {{ $t('pos.searchMember') }}
                   </AppButton>
-                  <AppButton size="sm" variant="default" icon="plus" @click="openQuickMember">新建</AppButton>
+                  <AppButton size="sm" variant="default" icon="plus" @click="openQuickMember">
+                    {{ $t('pos.newMember') }}
+                  </AppButton>
                 </div>
-                <div class="text-[11px] text-text-3 mt-1.5">不绑定会员也可直接结算，按普通订单处理</div>
+                <div class="text-[11px] text-text-3 mt-1.5">{{ $t('pos.noMemberTip') }}</div>
               </div>
             </div>
 
             <!-- 金额明细 -->
             <div class="card card-pad">
-              <div class="text-[12.5px] font-semibold mb-2.5">金额明细</div>
+              <div class="text-[12.5px] font-semibold mb-2.5">{{ $t('pos.amountDetail') }}</div>
               <div class="space-y-1.5 text-[12.5px]">
                 <div class="flex justify-between">
-                  <span class="text-text-2">商品合计（{{ itemCount }} 件）</span>
+                  <span class="text-text-2">{{ $t('pos.goodsTotal', { n: itemCount }) }}</span>
                   <span class="num">{{ money(grossAmount) }}</span>
                 </div>
                 <div v-if="memberDiscount > 0" class="flex justify-between">
-                  <span class="text-text-2">会员折扣</span>
+                  <span class="text-text-2">{{ $t('pos.memberDiscount') }}</span>
                   <span class="num" :style="{ color: 'var(--c-success)' }">-{{ money(memberDiscount) }}</span>
                 </div>
                 <div v-if="pointsDiscount > 0" class="flex justify-between">
-                  <span class="text-text-2">积分抵扣（{{ pointsUsed }} 分）</span>
+                  <span class="text-text-2">{{ $t('pos.pointsDeduct', { points: pointsUsed }) }}</span>
                   <span class="num" :style="{ color: 'var(--c-success)' }">-{{ money(pointsDiscount) }}</span>
                 </div>
 
                 <div class="flex items-center justify-between pt-1">
-                  <span class="text-text-2">整单优惠</span>
+                  <span class="text-text-2">{{ $t('pos.wholeDiscount') }}</span>
                   <div class="flex items-center gap-1">
                     <button class="qty-btn" @click="wholeDiscount = Math.max(0, calc(wholeDiscount - 1))">
                       <Icon name="minus" :size="12" />
@@ -982,22 +1006,23 @@ const holdColumns = [
               <div class="divider my-2.5" />
 
               <div class="flex items-end justify-between">
-                <span class="text-[13px] font-medium">应收合计</span>
+                <span class="text-[13px] font-medium">{{ $t('pos.payable') }}</span>
                 <span class="text-[26px] font-semibold leading-none" :style="{ color: 'var(--c-primary)' }">
                   {{ money(payable) }}
                 </span>
               </div>
               <div v-if="member" class="text-[11.5px] text-text-3 text-right mt-1.5">
-                本单可得
-                <span class="font-medium" :style="{ color: 'var(--c-primary)' }">{{ pointsEarned }}</span> 积分
-                <span v-if="pointsUsed > 0"> · 抵扣 {{ pointsUsed }} 分</span>
+                {{ $t('pos.earnedPoints') }}
+                <span class="font-medium" :style="{ color: 'var(--c-primary)' }">{{ pointsEarned }}</span>
+                {{ $t('pos.earnedPointsSuffix') }}
+                <span v-if="pointsUsed > 0">{{ $t('pos.deductedPoints', { points: pointsUsed }) }}</span>
               </div>
 
               <!-- 操作区跟着应收金额走，收银员视线不用来回跳 -->
               <div class="divider my-3" />
               <div class="grid grid-cols-2 gap-2">
-                <AppButton variant="default" icon="save" @click="holdOrder">挂单 F9</AppButton>
-                <AppButton variant="default" icon="hold" @click="holdDrawer = true">取单 F8</AppButton>
+                <AppButton variant="default" icon="save" @click="holdOrder">{{ $t('pos.hold') }} F9</AppButton>
+                <AppButton variant="default" icon="hold" @click="holdDrawer = true">{{ $t('pos.takeHold') }} F8</AppButton>
               </div>
               <AppButton
                 class="mt-2"
@@ -1008,10 +1033,10 @@ const holdColumns = [
                 :disabled="!cart.length"
                 @click="openPay"
               >
-                结算收款 F2
+                {{ $t('pos.checkoutBtn') }}
               </AppButton>
               <div class="text-[11px] text-text-3 text-center mt-1.5">
-                Ctrl + Enter 也可结算 · 支持一笔订单混合支付
+                {{ $t('pos.checkoutHint') }}
               </div>
             </div>
           </div>
@@ -1020,7 +1045,7 @@ const holdColumns = [
     </div>
 
     <!-- ============ 结算弹窗 ============ -->
-    <AppModal v-model="payModal" title="结算收款" :width="760" :mask-closable="false">
+    <AppModal v-model="payModal" :title="$t('pos.settleTitle')" :width="760" :mask-closable="false">
       <PaymentPanel
         v-if="payModal"
         ref="payPanel"
@@ -1035,39 +1060,39 @@ const holdColumns = [
         :default-method="settings?.pos?.defaultPayMethod || 'wechat'"
       />
       <template #footer="{ close }">
-        <AppButton variant="default" @click="close">取消</AppButton>
+        <AppButton variant="default" @click="close">{{ $t('common.cancel') }}</AppButton>
         <AppButton variant="default" icon="print" :loading="submitting" @click="submitOrder(true)">
-          结算并打印小票
+          {{ $t('pos.settleAndPrint') }}
         </AppButton>
         <AppButton variant="primary" icon="check" :loading="submitting" @click="submitOrder(false)">
-          确认收款
+          {{ $t('pos.confirmPay') }}
         </AppButton>
       </template>
     </AppModal>
 
     <!-- ============ 小票预览 ============ -->
-    <AppModal v-model="receiptModal" title="小票预览" :width="380">
+    <AppModal v-model="receiptModal" :title="$t('pos.receiptTitle')" :width="380">
       <div class="receipt-modal-body">
         <ReceiptPaper
           v-if="lastOrder"
           :order="lastOrder"
-          :footer="settings?.pos?.receiptFooter || '谢谢光临，欢迎下次惠顾！'"
+          :footer="settings?.pos?.receiptFooter || $t('order.receiptFooter')"
         />
       </div>
       <template #footer="{ close }">
-        <AppButton variant="default" @click="close">关闭</AppButton>
-        <AppButton variant="default" icon="print" @click="printReceipt">打印小票</AppButton>
-        <AppButton variant="primary" icon="plus" @click="newOrder">开新单</AppButton>
+        <AppButton variant="default" @click="close">{{ $t('common.close') }}</AppButton>
+        <AppButton variant="default" icon="print" @click="printReceipt">{{ $t('pos.printReceipt') }}</AppButton>
+        <AppButton variant="primary" icon="plus" @click="newOrder">{{ $t('pos.newOrder') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- ============ 挂单 / 取单 ============ -->
-    <AppDrawer v-model="holdDrawer" title="挂单 / 取单" :width="680">
+    <AppDrawer v-model="holdDrawer" :title="$t('pos.holdTitle')" :width="680">
       <div v-if="!holds.length">
         <Empty
           icon="hold"
-          title="当前没有挂单"
-          desc="结算前点「挂单」可把当前购物车暂存，顾客取完东西回来再取单继续结算"
+          :title="$t('pos.noHold')"
+          :desc="$t('pos.noHoldDesc')"
         />
       </div>
       <DataTable v-else :columns="holdColumns" :list="holds" max-height="58vh">
@@ -1076,7 +1101,7 @@ const holdColumns = [
         </template>
         <template #cell-memberName="{ row }">
           <span v-if="row.memberName">{{ row.memberName }}</span>
-          <span v-else class="text-text-3">散客</span>
+          <span v-else class="text-text-3">{{ $t('order.guest') }}</span>
         </template>
         <template #cell-amount="{ row }">
           <span class="price">{{ money(row.amount) }}</span>
@@ -1086,20 +1111,20 @@ const holdColumns = [
         </template>
         <template #cell-actions="{ row }">
           <div class="flex items-center gap-1.5 justify-end">
-            <AppButton size="sm" variant="soft" @click="takeHold(row)">取单</AppButton>
-            <AppButton size="sm" variant="ghost" @click="removeHold(row)">删除</AppButton>
+            <AppButton size="sm" variant="soft" @click="takeHold(row)">{{ $t('pos.take') }}</AppButton>
+            <AppButton size="sm" variant="ghost" @click="removeHold(row)">{{ $t('common.delete') }}</AppButton>
           </div>
         </template>
       </DataTable>
       <template #footer>
         <div class="text-[12px] text-text-3 mr-auto">
-          演示说明：取单会用示例商品还原购物车，便于现场连续演示。
+          {{ $t('pos.takeDemoTip') }}
         </div>
       </template>
     </AppDrawer>
 
     <!-- ============ 商品大图预览 ============ -->
-    <AppModal v-model="previewState.visible" :title="previewState.name" subtitle="商品图片" :width="400">
+    <AppModal v-model="previewState.visible" :title="previewState.name" :subtitle="$t('pos.previewTitle')" :width="400">
       <div
         class="flex items-center justify-center rounded-lg p-3"
         :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }"
@@ -1112,60 +1137,62 @@ const holdColumns = [
         />
         <div v-else class="empty">
           <Icon name="product" :size="34" />
-          <div>该商品暂无图片</div>
+          <div>{{ $t('pos.noImage') }}</div>
         </div>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2 text-[12.5px]">
         <div class="flex justify-between px-2 py-1.5 rounded" :style="{ background: 'var(--c-surface-2)' }">
-          <span class="text-text-3">条码</span>
+          <span class="text-text-3">{{ $t('pos.barcode') }}</span>
           <span class="font-mono">{{ previewState.barcode }}</span>
         </div>
         <div class="flex justify-between px-2 py-1.5 rounded" :style="{ background: 'var(--c-surface-2)' }">
-          <span class="text-text-3">售价</span>
+          <span class="text-text-3">{{ $t('product.price') }}</span>
           <span class="price">{{ money(previewState.price) }} / {{ previewState.unit }}</span>
         </div>
       </div>
       <template #footer="{ close }">
-        <AppButton variant="default" @click="close">关闭</AppButton>
-        <AppButton variant="primary" icon="plus" @click="addFromPreview">加入购物车</AppButton>
+        <AppButton variant="default" @click="close">{{ $t('common.close') }}</AppButton>
+        <AppButton variant="primary" icon="plus" @click="addFromPreview">{{ $t('pos.addToCart') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- ============ 快捷新建会员 ============ -->
-    <AppModal v-model="quickMember.visible" title="现场新建会员" :width="420">
+    <AppModal v-model="quickMember.visible" :title="$t('pos.quickMemberTitle')" :width="420">
       <div class="space-y-3">
         <div class="field">
-          <label class="field-label">会员姓名<span class="req">*</span></label>
-          <input v-model="quickMember.name" class="input w-full" placeholder="请输入姓名" />
+          <label class="field-label">{{ $t('pos.memberName') }}<span class="req">*</span></label>
+          <input v-model="quickMember.name" class="input w-full" :placeholder="$t('pos.memberNamePlaceholder')" />
         </div>
         <div class="field">
-          <label class="field-label">手机号<span class="req">*</span></label>
+          <label class="field-label">{{ $t('pos.memberPhone') }}<span class="req">*</span></label>
           <input
             v-model="quickMember.phone"
             class="input w-full font-mono"
             maxlength="11"
-            placeholder="11 位手机号"
+            :placeholder="$t('pos.memberPhonePlaceholder')"
             @keyup.enter="saveQuickMember"
           />
         </div>
         <div class="field">
-          <label class="field-label">性别</label>
+          <label class="field-label">{{ $t('pos.gender') }}</label>
           <div class="seg">
             <button class="seg-item" :class="quickMember.gender === 'female' && 'is-active'" @click="quickMember.gender = 'female'">
-              女
+              {{ $t('pos.female') }}
             </button>
             <button class="seg-item" :class="quickMember.gender === 'male' && 'is-active'" @click="quickMember.gender = 'male'">
-              男
+              {{ $t('pos.male') }}
             </button>
           </div>
         </div>
         <div class="text-[11.5px] text-text-3">
-          新会员默认「普通会员」等级；创建后自动绑定到本单，本单消费会计入其积分。
+          {{ $t('pos.quickMemberTip') }}
         </div>
       </div>
       <template #footer="{ close }">
-        <AppButton variant="default" @click="close">取消</AppButton>
-        <AppButton variant="primary" :loading="quickMemberSaving" @click="saveQuickMember">创建并绑定</AppButton>
+        <AppButton variant="default" @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" :loading="quickMemberSaving" @click="saveQuickMember">
+          {{ $t('pos.createAndBind') }}
+        </AppButton>
       </template>
     </AppModal>
   </PageShell>

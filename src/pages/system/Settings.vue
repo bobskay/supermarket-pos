@@ -12,6 +12,7 @@ import { settingApi } from '@/api'
 import { money, clone, MEMBER_LEVEL_STYLE } from '@/utils/format'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import Empty from '@/components/ui/Empty.vue'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -22,32 +23,33 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const toast = useToast()
 const { isManager } = useAuth()
+const { t, tl } = useI18n()
 
 const SECTIONS = [
-  { key: 'shop', label: '门店信息', desc: '用于小票抬头、报表页眉与门店档案', icon: 'store' },
-  { key: 'pos', label: '收银设置', desc: '积分、折扣、抹零、支付与打印规则', icon: 'cart' },
-  { key: 'member', label: '会员与积分', desc: '积分规则与会员等级权益说明', icon: 'members' },
-  { key: 'permission', label: '权限说明', desc: '收银员与店长的功能权限对照', icon: 'shield' },
+  { key: 'shop', labelKey: 'settings.tabShop', descKey: 'settings.tabShopDesc', icon: 'store' },
+  { key: 'pos', labelKey: 'settings.tabPos', descKey: 'settings.tabPosDesc', icon: 'cart' },
+  { key: 'member', labelKey: 'settings.tabMember', descKey: 'settings.tabMemberDesc', icon: 'members' },
+  { key: 'permission', labelKey: 'settings.tabPermission', descKey: 'settings.tabPermissionDesc', icon: 'shield' },
 ]
 const active = ref('shop')
 
 const ROUND_MODES = [
-  { value: 'round', label: '四舍五入（round）' },
-  { value: 'fen', label: '抹分（抹去分位）' },
-  { value: 'jiao', label: '抹角（抹去角位）' },
+  { value: 'round', labelKey: 'settings.roundRoundFull' },
+  { value: 'fen', labelKey: 'settings.roundDownFull' },
+  { value: 'jiao', labelKey: 'settings.roundJiaoFull' },
 ]
 const PAY_METHODS = [
-  { value: 'cash', label: '现金' },
-  { value: 'wechat', label: '微信' },
-  { value: 'alipay', label: '支付宝' },
-  { value: 'card', label: '储值卡' },
+  { value: 'cash', labelKey: 'pos.cash' },
+  { value: 'wechat', labelKey: 'pos.wechat' },
+  { value: 'alipay', labelKey: 'pos.alipay' },
+  { value: 'card', labelKey: 'pos.storedCard' },
 ]
 /** 会员等级权益：与会员新建页的说明保持一致，改政策时两处一起改 */
 const BENEFITS = [
-  { level: 'normal', name: '普通会员', rate: 1, discount: '无折扣' },
-  { level: 'silver', name: '银卡会员', rate: 1, discount: '95 折' },
-  { level: 'gold', name: '金卡会员', rate: 1.2, discount: '95 折' },
-  { level: 'diamond', name: '钻石会员', rate: 1.5, discount: '9 折' },
+  { level: 'normal', nameKey: 'settings.memberLevelNormal', rate: 1, discountKey: 'settings.discountNone' },
+  { level: 'silver', nameKey: 'settings.memberLevelSilver', rate: 1, discountKey: 'settings.discount95' },
+  { level: 'gold', nameKey: 'settings.memberLevelGold', rate: 1.2, discountKey: 'settings.discount95' },
+  { level: 'diamond', nameKey: 'settings.memberLevelDiamond', rate: 1.5, discountKey: 'settings.discount90' },
 ]
 
 const loading = ref(true)
@@ -87,17 +89,19 @@ onMounted(load)
 
 const currentSection = computed(() => SECTIONS.find((s) => s.key === active.value) || SECTIONS[0])
 
-const roundModeName = computed(
-  () => ROUND_MODES.find((r) => r.value === form.pos.roundMode)?.label || form.pos.roundMode,
-)
-const payMethodName = computed(
-  () => PAY_METHODS.find((p) => p.value === form.pos.defaultPayMethod)?.label || form.pos.defaultPayMethod,
-)
+const roundModeName = computed(() => {
+  const hit = ROUND_MODES.find((r) => r.value === form.pos.roundMode)
+  return hit ? t(hit.labelKey) : form.pos.roundMode
+})
+const payMethodName = computed(() => {
+  const hit = PAY_METHODS.find((p) => p.value === form.pos.defaultPayMethod)
+  return hit ? t(hit.labelKey) : form.pos.defaultPayMethod
+})
 
 /** 积分规则文案：让店长一眼看懂「怎么送、怎么抵」 */
 const pointsRule = computed(() => {
-  if (!form.pos.pointsEnabled) return '当前已关闭积分抵扣，消费不再累计积分，也不能用积分抵现。'
-  return `每消费 1 元累计 ${form.pos.pointsRate} 分；${form.pos.pointsDeductRate} 积分可抵扣 1 元。`
+  if (!form.pos.pointsEnabled) return t('settings.pointsRuleOff')
+  return t('settings.pointsRuleOn', { rate: form.pos.pointsRate, deduct: form.pos.pointsDeductRate })
 })
 
 async function save() {
@@ -105,7 +109,7 @@ async function save() {
   saving.value = true
   try {
     const res = await settingApi.update(clone({ shop: form.shop, pos: form.pos }))
-    toast.ok(res.message || '设置已保存')
+    toast.ok(t('settings.saveOk') || res.message)
   } finally {
     saving.value = false
   }
@@ -121,14 +125,14 @@ function navStyle(key) {
 <template>
   <PageShell>
     <PageHeader
-      title="系统设置"
-      desc="门店档案、收银规则、会员积分与角色权限集中配置；设置对所有收银终端即时生效"
+      :title="$t('settings.title')"
+      :desc="$t('settings.desc')"
       icon="settings"
     >
       <template #actions>
-        <AppButton icon="refresh" @click="load">重新加载</AppButton>
+        <AppButton icon="refresh" @click="load">{{ $t('settings.reload') }}</AppButton>
         <AppButton variant="primary" icon="save" :loading="saving" :disabled="!isManager" @click="save">
-          保存设置
+          {{ $t('settings.save') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -136,8 +140,8 @@ function navStyle(key) {
     <div v-if="!isManager" class="card">
       <Empty
         icon="lock"
-        title="当前角色无权修改系统设置"
-        desc="系统设置属于店长专属模块，请使用店长账号（admin）登录后访问。"
+        :title="$t('settings.noPermissionTitle')"
+        :desc="$t('settings.noPermissionDesc')"
         :size="92"
       />
     </div>
@@ -146,7 +150,7 @@ function navStyle(key) {
       <div class="grid grid-cols-1 xl:grid-cols-[208px_1fr] gap-3">
         <!-- 左侧竖向 Tab -->
         <div class="card card-pad h-max">
-          <div class="text-[11.5px] text-text-3 px-3 pb-2">设置分区</div>
+          <div class="text-[11.5px] text-text-3 px-3 pb-2">{{ $t('settings.sectionLabel') }}</div>
           <div class="space-y-1">
             <button
               v-for="s in SECTIONS"
@@ -156,14 +160,14 @@ function navStyle(key) {
               @click="active = s.key"
             >
               <Icon :name="s.icon" :size="15" />
-              <span class="flex-1">{{ s.label }}</span>
+              <span class="flex-1">{{ $t(s.labelKey) }}</span>
               <Icon v-if="active === s.key" name="chevronRight" :size="13" />
             </button>
           </div>
 
           <div class="divider my-3" />
           <div class="px-1 text-[11.5px] text-text-3 leading-relaxed">
-            设置保存后立即对收银台与库存模块生效，请确认无误后再保存。
+            {{ $t('settings.sectionTip') }}
           </div>
         </div>
 
@@ -171,10 +175,10 @@ function navStyle(key) {
         <div class="card min-w-0">
           <div class="panel-head">
             <div>
-              <div class="text-[14px] font-semibold">{{ currentSection.label }}</div>
-              <div class="text-[11.5px] text-text-3 mt-0.5">{{ currentSection.desc }}</div>
+              <div class="text-[14px] font-semibold">{{ $t(currentSection.labelKey) }}</div>
+              <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t(currentSection.descKey) }}</div>
             </div>
-            <span class="badge badge-muted">仅店长可修改</span>
+            <span class="badge badge-muted">{{ $t('settings.onlyManager') }}</span>
           </div>
 
           <div v-if="loading" class="p-4 grid grid-cols-2 gap-3">
@@ -184,25 +188,25 @@ function navStyle(key) {
           <template v-else>
             <!-- 门店信息 -->
             <div v-if="active === 'shop'" class="p-4">
-              <div class="text-[12.5px] text-text-3 mb-3">这些信息会打印在小票抬头，并作为报表的统计主体。</div>
+              <div class="text-[12.5px] text-text-3 mb-3">{{ $t('settings.shopTip') }}</div>
               <div class="grid grid-cols-2 gap-3">
-                <FormField label="门店名称" required>
-                  <input v-model="form.shop.name" class="input w-full" placeholder="如：惠民生活超市（中心店）" />
+                <FormField :label="$t('settings.shopName')" required>
+                  <input v-model="form.shop.name" class="input w-full" :placeholder="$t('settings.shopNamePlaceholder')" />
                 </FormField>
-                <FormField label="门店编码" hint="用于对账与多门店区分">
-                  <input v-model="form.shop.code" class="input w-full font-mono" placeholder="如：HM-001" />
+                <FormField :label="$t('settings.shopCode')" :hint="$t('settings.shopCodeHint')">
+                  <input v-model="form.shop.code" class="input w-full font-mono" :placeholder="$t('settings.shopCodePlaceholder')" />
                 </FormField>
-                <FormField label="联系电话">
-                  <input v-model="form.shop.phone" class="input w-full" placeholder="固定电话或手机号" />
+                <FormField :label="$t('settings.shopPhone')">
+                  <input v-model="form.shop.phone" class="input w-full" :placeholder="$t('settings.shopPhonePlaceholder')" />
                 </FormField>
-                <FormField label="店长姓名">
-                  <input v-model="form.shop.manager" class="input w-full" placeholder="门店负责人" />
+                <FormField :label="$t('settings.shopManager')">
+                  <input v-model="form.shop.manager" class="input w-full" :placeholder="$t('settings.shopManagerPlaceholder')" />
                 </FormField>
-                <FormField label="门店地址" span="2">
-                  <input v-model="form.shop.address" class="input w-full" placeholder="省 / 市 / 区 + 详细地址" />
+                <FormField :label="$t('settings.shopAddress')" span="2">
+                  <input v-model="form.shop.address" class="input w-full" :placeholder="$t('settings.shopAddressPlaceholder')" />
                 </FormField>
-                <FormField label="营业执照号" span="2" hint="与营业执照保持一致，用于监管备查">
-                  <input v-model="form.shop.license" class="input w-full font-mono" placeholder="统一社会信用代码" />
+                <FormField :label="$t('settings.shopLicense')" span="2" :hint="$t('settings.shopLicenseHint')">
+                  <input v-model="form.shop.license" class="input w-full font-mono" :placeholder="$t('settings.shopLicensePlaceholder')" />
                 </FormField>
               </div>
             </div>
@@ -210,59 +214,59 @@ function navStyle(key) {
             <!-- 收银设置 -->
             <div v-else-if="active === 'pos'" class="p-4">
               <div class="text-[12.5px] text-text-3 mb-3">
-                以下规则会在收银台结算时实时生效：积分累计、会员折扣、抹零与默认支付方式。
+                {{ $t('settings.posTip') }}
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div class="card card-pad" :style="{ background: 'var(--c-surface-2)' }">
                   <SwitchBox
                     v-model="form.pos.pointsEnabled"
-                    label="启用积分抵扣"
-                    hint="关闭后消费不再累计积分，也不能用积分抵现"
+                    :label="$t('settings.pointsEnabled')"
+                    :hint="$t('settings.pointsEnabledHint')"
                   />
                 </div>
                 <div class="card card-pad" :style="{ background: 'var(--c-surface-2)' }">
                   <SwitchBox
                     v-model="form.pos.memberDiscount"
-                    label="启用会员折扣"
-                    hint="按会员等级自动计算折扣（银卡 95 折 / 钻石 9 折）"
+                    :label="$t('settings.memberDiscount')"
+                    :hint="$t('settings.memberDiscountHint')"
                   />
                 </div>
               </div>
 
               <div class="grid grid-cols-2 gap-3 mt-3">
-                <FormField label="每消费 1 元累计积分" hint="通常为 1，金卡 / 钻石会员在收银台按倍率上浮">
+                <FormField :label="$t('settings.pointsRate')" :hint="$t('settings.pointsRateHint')">
                   <input v-model.number="form.pos.pointsRate" type="number" min="0" class="input w-full num" />
                 </FormField>
-                <FormField label="多少积分抵扣 1 元" hint="默认 100 积分 = 1 元">
+                <FormField :label="$t('settings.pointsDeductRate')" :hint="$t('settings.pointsDeductRateHint')">
                   <input v-model.number="form.pos.pointsDeductRate" type="number" min="1" class="input w-full num" />
                 </FormField>
-                <FormField label="抹零方式" hint="结算时对分位 / 角位的处理规则">
+                <FormField :label="$t('settings.roundMode')" :hint="$t('settings.roundModeHint')">
                   <select v-model="form.pos.roundMode" class="input w-full">
-                    <option v-for="r in ROUND_MODES" :key="r.value" :value="r.value">{{ r.label }}</option>
+                    <option v-for="r in ROUND_MODES" :key="r.value" :value="r.value">{{ $t(r.labelKey) }}</option>
                   </select>
                 </FormField>
-                <FormField label="默认支付方式" hint="收银台打开时预选的支付方式">
+                <FormField :label="$t('settings.defaultPayMethod')" :hint="$t('settings.defaultPayMethodHint')">
                   <select v-model="form.pos.defaultPayMethod" class="input w-full">
-                    <option v-for="p in PAY_METHODS" :key="p.value" :value="p.value">{{ p.label }}</option>
+                    <option v-for="p in PAY_METHODS" :key="p.value" :value="p.value">{{ $t(p.labelKey) }}</option>
                   </select>
                 </FormField>
-                <FormField label="库存预警默认阈值" hint="新增商品时的默认预警数量，低于该值触发提醒">
+                <FormField :label="$t('settings.warnThresholdLabel')" :hint="$t('settings.warnThresholdHint')">
                   <input v-model.number="form.pos.warnThreshold" type="number" min="0" class="input w-full num" />
                 </FormField>
                 <div class="card card-pad flex items-center" :style="{ background: 'var(--c-surface-2)' }">
                   <SwitchBox
                     v-model="form.pos.autoPrint"
-                    label="结算后自动打印小票"
-                    hint="开启后每笔结算自动调用一次打印"
+                    :label="$t('settings.autoPrintLabel')"
+                    :hint="$t('settings.autoPrintHint')"
                   />
                 </div>
-                <FormField label="小票页脚文案" span="2" hint="打印在小票最下方，可用于会员日、退换货说明">
+                <FormField :label="$t('settings.receiptFooter')" span="2" :hint="$t('settings.receiptFooterHint')">
                   <textarea
                     v-model="form.pos.receiptFooter"
                     class="w-full"
                     rows="2"
-                    placeholder="如：谢谢光临，欢迎下次惠顾！"
+                    :placeholder="$t('settings.receiptFooterPlaceholder')"
                   />
                 </FormField>
               </div>
@@ -271,27 +275,27 @@ function navStyle(key) {
             <!-- 会员与积分 -->
             <div v-else-if="active === 'member'" class="p-4">
               <div class="text-[12.5px] text-text-3 mb-3">
-                会员权益由「折扣」与「积分倍率」两部分组成，收银台绑定会员后自动套用。
+                {{ $t('settings.memberTip') }}
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div class="card">
                   <div class="panel-head">
-                    <div class="text-[13.5px] font-semibold">等级权益</div>
-                    <span class="text-[11.5px] text-text-3">折扣 / 积分倍率</span>
+                    <div class="text-[13.5px] font-semibold">{{ $t('settings.benefitTitle') }}</div>
+                    <span class="text-[11.5px] text-text-3">{{ $t('settings.benefitTableTip') }}</span>
                   </div>
                   <table class="table-flat">
                     <thead>
                       <tr>
-                        <th>等级</th>
-                        <th class="text-right">会员折扣</th>
-                        <th class="text-right">积分倍率</th>
+                        <th>{{ $t('settings.benefitLevelColumn') }}</th>
+                        <th class="text-right">{{ $t('settings.benefitDiscountColumn') }}</th>
+                        <th class="text-right">{{ $t('settings.benefitPointsColumn') }}</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-for="b in BENEFITS" :key="b.level">
-                        <td><span class="badge" :class="MEMBER_LEVEL_STYLE[b.level]">{{ b.name }}</span></td>
-                        <td class="text-right">{{ b.discount }}</td>
+                        <td><span class="badge" :class="MEMBER_LEVEL_STYLE[b.level]">{{ $t(b.nameKey) }}</span></td>
+                        <td class="text-right">{{ $t(b.discountKey) }}</td>
                         <td class="text-right num">{{ b.rate }}x</td>
                       </tr>
                     </tbody>
@@ -300,45 +304,45 @@ function navStyle(key) {
 
                 <div class="space-y-3">
                   <div class="card card-pad">
-                    <div class="text-[13.5px] font-semibold mb-2">积分规则</div>
+                    <div class="text-[13.5px] font-semibold mb-2">{{ $t('settings.pointsRule') }}</div>
                     <div class="text-[12.5px] text-text-2 leading-relaxed">{{ pointsRule }}</div>
                     <div class="divider my-3" />
                     <ul class="space-y-1.5 text-[12px] text-text-3 leading-relaxed">
-                      <li>· 积分按实收金额（扣除折扣与积分抵扣后）计算，四舍五入取整。</li>
-                      <li>· 订单退款时同步扣回该笔订单已累计的积分。</li>
-                      <li>· 积分不可提现、不可转让，仅限本门店消费抵扣。</li>
+                      <li>{{ $t('settings.pointsRuleNote1') }}</li>
+                      <li>{{ $t('settings.pointsRuleNote2') }}</li>
+                      <li>{{ $t('settings.pointsRuleNote3') }}</li>
                     </ul>
                   </div>
 
                   <div class="card card-pad">
-                    <div class="text-[13.5px] font-semibold mb-3">当前配置摘要</div>
+                    <div class="text-[13.5px] font-semibold mb-3">{{ $t('settings.pointsRuleNow') }}</div>
                     <div class="space-y-2 text-[12.5px]">
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">积分抵扣</span>
+                        <span class="text-text-2">{{ $t('settings.summaryPointsDeduct') }}</span>
                         <span class="badge" :class="form.pos.pointsEnabled ? 'badge-success' : 'badge-muted'">
-                          {{ form.pos.pointsEnabled ? '已启用' : '已关闭' }}
+                          {{ form.pos.pointsEnabled ? $t('settings.statusOn') : $t('settings.statusOff') }}
                         </span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">会员折扣</span>
+                        <span class="text-text-2">{{ $t('settings.summaryMemberDiscount') }}</span>
                         <span class="badge" :class="form.pos.memberDiscount ? 'badge-success' : 'badge-muted'">
-                          {{ form.pos.memberDiscount ? '已启用' : '已关闭' }}
+                          {{ form.pos.memberDiscount ? $t('settings.statusOn') : $t('settings.statusOff') }}
                         </span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">累计倍率</span>
-                        <span class="num">每 1 元 {{ form.pos.pointsRate }} 分</span>
+                        <span class="text-text-2">{{ $t('settings.summaryRate') }}</span>
+                        <span class="num">{{ $t('settings.summaryRateValue', { rate: form.pos.pointsRate }) }}</span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">抵扣比例</span>
-                        <span class="num">{{ form.pos.pointsDeductRate }} 分 = {{ money(1) }}</span>
+                        <span class="text-text-2">{{ $t('settings.summaryDeductRate') }}</span>
+                        <span class="num">{{ $t('settings.summaryDeductValue', { points: form.pos.pointsDeductRate, amount: money(1) }) }}</span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">抹零方式</span>
+                        <span class="text-text-2">{{ $t('settings.summaryRoundMode') }}</span>
                         <span>{{ roundModeName }}</span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-text-2">默认支付</span>
+                        <span class="text-text-2">{{ $t('settings.summaryDefaultPay') }}</span>
                         <span>{{ payMethodName }}</span>
                       </div>
                     </div>
@@ -350,15 +354,15 @@ function navStyle(key) {
             <!-- 权限说明 -->
             <div v-else class="p-4">
               <div class="text-[12.5px] text-text-3 mb-3">
-                权限决定菜单可见性与接口访问范围；收银员账号始终只能查看本人订单，不能查看全店数据。
+                {{ $t('settings.permissionTip') }}
               </div>
 
               <table class="table-flat">
                 <thead>
                   <tr>
-                    <th>功能模块</th>
-                    <th class="text-center" style="width: 120px">收银员</th>
-                    <th class="text-center" style="width: 120px">店长</th>
+                    <th>{{ $t('settings.moduleColumn') }}</th>
+                    <th class="text-center" style="width: 120px">{{ $t('settings.cashierColumn') }}</th>
+                    <th class="text-center" style="width: 120px">{{ $t('settings.managerColumn') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -383,13 +387,13 @@ function navStyle(key) {
               </table>
 
               <div class="card card-pad mt-3" :style="{ background: 'var(--c-surface-2)' }">
-                <div class="text-[13px] font-semibold mb-2">收银员接口权限清单</div>
+                <div class="text-[13px] font-semibold mb-2">{{ $t('settings.cashierPermTitle') }}</div>
                 <div class="flex flex-wrap gap-1.5">
                   <span v-for="p in permissions.cashier || []" :key="p" class="badge badge-info font-mono">{{ p }}</span>
-                  <span v-if="!(permissions.cashier || []).length" class="text-[12px] text-text-3">暂无配置</span>
+                  <span v-if="!(permissions.cashier || []).length" class="text-[12px] text-text-3">{{ $t('settings.noneConfigured') }}</span>
                 </div>
                 <div class="text-[11.5px] text-text-3 mt-2.5 leading-relaxed">
-                  店长的权限为 <code class="font-mono text-text-2">*</code>（全部），因此在列表中以全选显示。
+                  {{ $t('settings.managerPermTip') }}
                 </div>
               </div>
             </div>
@@ -397,11 +401,11 @@ function navStyle(key) {
 
           <div class="px-4 py-3 border-t border-line flex items-center justify-between gap-2 flex-wrap">
             <span class="text-[11.5px] text-text-3">
-              修改后请记得点击保存，未保存的改动不会生效。
+              {{ $t('settings.footTip') }}
             </span>
             <div class="flex items-center gap-2">
-              <AppButton icon="refresh" @click="load">放弃修改</AppButton>
-              <AppButton variant="primary" icon="save" :loading="saving" @click="save">保存设置</AppButton>
+              <AppButton icon="refresh" @click="load">{{ $t('settings.discard') }}</AppButton>
+              <AppButton variant="primary" icon="save" :loading="saving" @click="save">{{ $t('settings.save') }}</AppButton>
             </div>
           </div>
         </div>

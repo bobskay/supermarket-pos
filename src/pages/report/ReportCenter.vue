@@ -12,6 +12,7 @@ import { money, thousands, percent, calc } from '@/utils/format'
 import { exportXls } from '@/utils/export'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppChart from '@/components/ui/AppChart.vue'
@@ -21,6 +22,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const toast = useToast()
 const { isManager } = useAuth()
+const { t, tl } = useI18n()
 
 const loading = ref(true)
 const raw = ref(null)
@@ -28,17 +30,17 @@ const range = ref(14)
 const metrics = ref(['amount', 'orders'])
 
 const RANGES = [
-  { key: 7, label: '近 7 天' },
-  { key: 14, label: '近 14 天' },
-  { key: 30, label: '近 30 天' },
+  { key: 7, labelKey: 'report.rangeDays', n: 7 },
+  { key: 14, labelKey: 'report.rangeDays', n: 14 },
+  { key: 30, labelKey: 'report.rangeDays', n: 30 },
 ]
 
-const METRIC_DEFS = [
-  { key: 'amount', name: '销售额', color: 'var(--c-primary)', area: true },
-  { key: 'orders', name: '订单数', color: 'var(--c-accent)' },
-  { key: 'profit', name: '毛利', color: 'var(--c-success)' },
-  { key: 'cost', name: '成本', color: 'var(--c-warning)' },
-]
+const METRIC_DEFS = computed(() => [
+  { key: 'amount', name: t('report.metricAmount'), color: 'var(--c-primary)', area: true },
+  { key: 'orders', name: t('report.metricOrders'), color: 'var(--c-accent)' },
+  { key: 'profit', name: t('report.metricProfit'), color: 'var(--c-success)' },
+  { key: 'cost', name: t('report.metricCost'), color: 'var(--c-warning)' },
+])
 
 /* ============================== 派生数据 ============================== */
 const trend = computed(() => (raw.value?.trend || []).slice(-range.value))
@@ -77,38 +79,42 @@ const compare = computed(() => {
 
 const kpis = computed(() => [
   {
-    label: '销售总额',
+    key: 'sales',
+    label: t('report.totalSales'),
     value: money(period.value.amount),
     icon: 'money',
     color: 'var(--c-primary)',
     bg: 'var(--c-primary-soft)',
-    foot: `日均 ${money(period.value.dayAvg)}`,
+    foot: t('report.dailyAvg', { amount: money(period.value.dayAvg) }),
     compare: compare.value,
   },
   {
-    label: '订单总数',
+    key: 'orders',
+    label: t('report.totalOrders'),
     value: thousands(period.value.orders),
-    unit: '单',
+    unit: t('dashboard.unitOrder'),
     icon: 'receipt',
     color: 'var(--c-accent)',
     bg: 'var(--c-accent-soft)',
-    foot: `客单价 ${money(period.value.avgPrice)}`,
+    foot: t('report.avgPrice', { amount: money(period.value.avgPrice) }),
   },
   {
-    label: '毛利总额',
+    key: 'profit',
+    label: t('report.totalProfit'),
     value: money(period.value.profit),
     icon: 'trendUp',
     color: 'var(--c-success)',
     bg: 'var(--c-success-soft)',
-    foot: `毛利率 ${percent(period.value.profitRate)}`,
+    foot: t('report.profitRate', { rate: percent(period.value.profitRate) }),
   },
   {
-    label: '成本总额',
+    key: 'cost',
+    label: t('report.totalCost'),
     value: money(period.value.cost),
     icon: 'scale',
     color: 'var(--c-warning)',
     bg: 'var(--c-warning-soft)',
-    foot: '按商品进价核算',
+    foot: t('report.byCostPrice'),
   },
 ])
 
@@ -129,32 +135,32 @@ const topCategory = computed(() => categoryStats.value[0] || null)
 const bestHour = computed(() => hourStats.value.slice().sort((a, b) => b.amount - a.amount)[0] || null)
 
 /* ============================== 表格列 ============================== */
-const rankColumns = [
-  { key: 'index', label: '排名', width: 60, align: 'center' },
-  { key: 'name', label: '商品名称' },
-  { key: 'barcode', label: '条码', width: 130 },
-  { key: 'qty', label: '销量', width: 90, align: 'right', format: (r) => `${r.qty}${r.unit}` },
-  { key: 'amount', label: '销售额', width: 110, align: 'right', format: (r) => money(r.amount) },
-  { key: 'share', label: '销售占比', width: 100, align: 'right' },
-]
+const rankColumns = computed(() => [
+  { key: 'index', label: t('report.rankColumn'), width: 60, align: 'center' },
+  { key: 'name', label: t('report.productName') },
+  { key: 'barcode', label: t('report.barcode'), width: 130 },
+  { key: 'qty', label: t('report.salesQty'), width: 90, align: 'right', format: (r) => `${r.qty}${r.unit}` },
+  { key: 'amount', label: t('report.metricAmount'), width: 110, align: 'right', format: (r) => money(r.amount) },
+  { key: 'share', label: t('report.share'), width: 100, align: 'right' },
+])
 
-const cashierColumns = [
-  { key: 'name', label: '收银员', width: 100 },
-  { key: 'employeeNo', label: '工号', width: 80 },
-  { key: 'roleName', label: '角色', width: 84 },
-  { key: 'orderCount', label: '订单数', width: 88, align: 'right' },
-  { key: 'amount', label: '销售额', width: 110, align: 'right', format: (r) => money(r.amount) },
-  { key: 'avgPrice', label: '客单价', width: 96, align: 'right', format: (r) => money(r.avgPrice) },
+const cashierColumns = computed(() => [
+  { key: 'name', label: t('report.cashier'), width: 100 },
+  { key: 'employeeNo', label: t('report.employeeNo'), width: 80 },
+  { key: 'roleName', label: t('report.role'), width: 84 },
+  { key: 'orderCount', label: t('report.orderCount'), width: 88, align: 'right' },
+  { key: 'amount', label: t('report.metricAmount'), width: 110, align: 'right', format: (r) => money(r.amount) },
+  { key: 'avgPrice', label: t('report.avgOrderAmount'), width: 96, align: 'right', format: (r) => money(r.avgPrice) },
   { key: 'bar', label: '', width: 120 },
-]
+])
 
-const categoryColumns = [
-  { key: 'name', label: '品类' },
-  { key: 'skuCount', label: 'SKU 数', width: 90, align: 'right' },
-  { key: 'amount', label: '销售额', width: 120, align: 'right', format: (r) => money(r.amount) },
-  { key: 'share', label: '占比', width: 100, align: 'right' },
-  { key: 'stockAmount', label: '库存金额', width: 120, align: 'right', format: (r) => money(r.stockAmount) },
-]
+const categoryColumns = computed(() => [
+  { key: 'name', label: t('report.category') },
+  { key: 'skuCount', label: t('report.skuCount'), width: 90, align: 'right' },
+  { key: 'amount', label: t('report.metricAmount'), width: 120, align: 'right', format: (r) => money(r.amount) },
+  { key: 'share', label: t('report.shareColumn'), width: 100, align: 'right' },
+  { key: 'stockAmount', label: t('report.stockAmount'), width: 120, align: 'right', format: (r) => money(r.stockAmount) },
+])
 
 /* ============================== 操作 ============================== */
 async function load() {
@@ -171,7 +177,7 @@ function toggleMetric(key) {
   const i = metrics.value.indexOf(key)
   if (i > -1) {
     if (metrics.value.length === 1) {
-      toast.warning('至少保留一个指标')
+      toast.warning(t('report.keepOneMetric'))
       return
     }
     metrics.value.splice(i, 1)
@@ -180,36 +186,36 @@ function toggleMetric(key) {
   }
 }
 
-const activeSeries = computed(() => METRIC_DEFS.filter((m) => metrics.value.includes(m.key)))
+const activeSeries = computed(() => METRIC_DEFS.value.filter((m) => metrics.value.includes(m.key)))
 
 function exportTrend() {
   exportXls(
-    `销售趋势_近${range.value}天`,
-    ['日期', '销售额', '订单数', '成本', '毛利'],
+    t('report.trendExportName', { n: range.value }),
+    [t('common.date'), t('report.metricAmount'), t('report.metricOrders'), t('report.metricCost'), t('report.metricProfit')],
     trend.value.map((r) => [r.date, r.amount, r.orders, r.cost, r.profit]),
-    `销售趋势报表（近 ${range.value} 天）`,
+    t('report.trendExportTitle', { n: range.value }),
   )
-  toast.ok('报表已导出')
+  toast.ok(t('report.reportExported'))
 }
 
 function exportRank() {
   exportXls(
-    '商品销售排行',
-    ['排名', '商品名称', '条码', '销量', '单位', '销售额'],
+    t('report.rankExportName'),
+    [t('report.rankColumn'), t('report.productName'), t('report.barcode'), t('report.salesQty'), t('common.unit'), t('report.metricAmount')],
     productRank.value.map((r, i) => [i + 1, r.name, r.barcode, r.qty, r.unit, r.amount]),
-    '商品销售排行',
+    t('report.rankExportTitle'),
   )
-  toast.ok('商品排行已导出')
+  toast.ok(t('report.rankExported'))
 }
 
 function exportCashier() {
   exportXls(
-    '收银员业绩',
-    ['收银员', '工号', '角色', '订单数', '销售额', '客单价'],
+    t('report.cashierExportName'),
+    [t('report.cashier'), t('report.employeeNo'), t('report.role'), t('report.orderCount'), t('report.metricAmount'), t('report.avgOrderAmount')],
     cashierStats.value.map((r) => [r.name, r.employeeNo, r.roleName, r.orderCount, r.amount, r.avgPrice]),
-    '收银员业绩统计',
+    t('report.cashierExportTitle'),
   )
-  toast.ok('收银员业绩已导出')
+  toast.ok(t('report.cashierExported'))
 }
 
 /** 占比计算 */
@@ -224,8 +230,8 @@ onMounted(load)
 <template>
   <PageShell>
     <PageHeader
-      title="报表统计"
-      desc="门店经营分析：销售趋势、商品排行、支付结构与收银员业绩"
+      :title="$t('report.title')"
+      :desc="$t('report.desc')"
       icon="chartBar"
     >
       <template #actions>
@@ -237,11 +243,11 @@ onMounted(load)
             :class="range === r.key && 'is-active'"
             @click="range = r.key"
           >
-            {{ r.label }}
+            {{ $t(r.labelKey, { n: r.n }) }}
           </button>
         </div>
         <AppButton icon="refresh" :loading="loading" @click="load" />
-        <AppButton variant="primary" icon="download" @click="exportTrend">导出报表</AppButton>
+        <AppButton variant="primary" icon="download" @click="exportTrend">{{ $t('report.exportReport') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -253,7 +259,7 @@ onMounted(load)
     >
       <Icon name="lock" :size="16" :style="{ color: 'var(--c-warning)' }" class="mt-[1px]" />
       <div class="text-[12.5px]" :style="{ color: 'var(--c-warning)' }">
-        报表属于店长权限范围，当前账号仅可查看，如需完整功能请使用店长账号登录。
+        {{ $t('report.onlyManager') }}
       </div>
     </div>
 
@@ -266,7 +272,7 @@ onMounted(load)
           <div class="skeleton" style="height: 12px; width: 40%" />
         </div>
       </template>
-      <div v-for="k in kpis" v-else :key="k.label" class="kpi">
+      <div v-for="k in kpis" v-else :key="k.key" class="kpi">
         <div class="flex items-start justify-between">
           <div class="kpi-label">{{ k.label }}</div>
           <span
@@ -297,10 +303,10 @@ onMounted(load)
     <div class="card mt-3">
       <div class="panel-head flex-wrap">
         <div>
-          <div class="text-[14px] font-semibold">销售趋势</div>
+          <div class="text-[14px] font-semibold">{{ $t('report.salesTrend') }}</div>
           <div class="text-[11.5px] text-text-3 mt-0.5">
-            近 {{ range }} 天累计 {{ money(period.amount) }}
-            <span v-if="period.best">· 最高单日 {{ period.best.date }}（{{ money(period.best.amount) }}）</span>
+            {{ $t('report.rangeSum', { n: range, amount: money(period.amount) }) }}
+            <span v-if="period.best">{{ $t('report.bestDay', { date: period.best.date, amount: money(period.best.amount) }) }}</span>
           </div>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap">
@@ -338,8 +344,8 @@ onMounted(load)
       <div class="card">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">支付方式结构</div>
-            <div class="text-[11.5px] text-text-3 mt-0.5">含混合支付的每一笔收款</div>
+            <div class="text-[14px] font-semibold">{{ $t('report.payStructure') }}</div>
+            <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('report.payStructureDesc') }}</div>
           </div>
         </div>
         <div class="p-3 grid grid-cols-1 sm:grid-cols-[190px_1fr] gap-4 items-center">
@@ -367,7 +373,7 @@ onMounted(load)
                 {{ percent(shareOf(p.amount, payTotal), 1) }}
               </span>
             </div>
-            <div v-if="!payStats.length" class="text-[12px] text-text-3">暂无支付数据</div>
+            <div v-if="!payStats.length" class="text-[12px] text-text-3">{{ $t('report.noPayData') }}</div>
           </div>
         </div>
       </div>
@@ -375,9 +381,9 @@ onMounted(load)
       <div class="card">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">时段销售分布</div>
+            <div class="text-[14px] font-semibold">{{ $t('report.hourSales') }}</div>
             <div class="text-[11.5px] text-text-3 mt-0.5">
-              用于排班参考<span v-if="bestHour"> · 高峰 {{ bestHour.hour }}（{{ money(bestHour.amount) }}）</span>
+              {{ $t('report.hourSalesDesc') }}<span v-if="bestHour">{{ $t('report.peakHour', { hour: bestHour.hour, amount: money(bestHour.amount) }) }}</span>
             </div>
           </div>
         </div>
@@ -387,7 +393,7 @@ onMounted(load)
             type="bar"
             :data="hourStats"
             x-key="hour"
-            :series="[{ key: 'amount', name: '销售额' }]"
+            :series="[{ key: 'amount', name: $t('report.metricAmount') }]"
             money
             :legend="false"
             height="212px"
@@ -402,8 +408,8 @@ onMounted(load)
       <div class="card">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">商品销售排行</div>
-            <div class="text-[11.5px] text-text-3 mt-0.5">按销售额排序 · Top {{ rankLimit }}</div>
+            <div class="text-[14px] font-semibold">{{ $t('report.productRank') }}</div>
+            <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('report.productRankDesc', { n: rankLimit }) }}</div>
           </div>
           <div class="flex items-center gap-2">
             <div class="seg">
@@ -417,7 +423,7 @@ onMounted(load)
                 Top {{ n }}
               </button>
             </div>
-            <AppButton size="sm" icon="download" @click="exportRank">导出</AppButton>
+            <AppButton size="sm" icon="download" @click="exportRank">{{ $t('report.exportRank') }}</AppButton>
           </div>
         </div>
         <DataTable :columns="rankColumns" :list="rankRows" :loading="loading" max-height="330px">
@@ -440,9 +446,9 @@ onMounted(load)
       <div class="card">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">品类销售结构</div>
+            <div class="text-[14px] font-semibold">{{ $t('report.categoryStructure') }}</div>
             <div class="text-[11.5px] text-text-3 mt-0.5">
-              <span v-if="topCategory">第一品类：{{ topCategory.name }}（{{ money(topCategory.amount) }}）</span>
+              <span v-if="topCategory">{{ $t('report.topCategory', { name: topCategory.name, amount: money(topCategory.amount) }) }}</span>
             </div>
           </div>
         </div>
@@ -452,7 +458,7 @@ onMounted(load)
             type="hbar"
             :data="rankChart"
             x-key="name"
-            :series="[{ key: 'amount', name: '销售额' }]"
+            :series="[{ key: 'amount', name: $t('report.metricAmount') }]"
             money
             height="200px"
           />
@@ -472,15 +478,15 @@ onMounted(load)
     <div class="card mt-3">
       <div class="panel-head">
         <div>
-          <div class="text-[14px] font-semibold">收银员业绩</div>
-          <div class="text-[11.5px] text-text-3 mt-0.5">全部历史订单统计，用于绩效参考</div>
+          <div class="text-[14px] font-semibold">{{ $t('report.cashierPerf') }}</div>
+          <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('report.cashierPerfDesc') }}</div>
         </div>
-        <AppButton size="sm" icon="download" @click="exportCashier">导出</AppButton>
+        <AppButton size="sm" icon="download" @click="exportCashier">{{ $t('report.exportCashier') }}</AppButton>
       </div>
       <DataTable :columns="cashierColumns" :list="cashierStats" :loading="loading">
         <template #cell-roleName="{ row }">
           <span class="badge" :class="row.roleName === '店长' ? 'badge-primary' : 'badge-info'">
-            {{ row.roleName }}
+            {{ row.roleName === '店长' ? $t('user.manager') : row.roleName === '收银员' ? $t('user.cashier') : row.roleName }}
           </span>
         </template>
         <template #cell-bar="{ row }">
@@ -499,7 +505,7 @@ onMounted(load)
 
     <div class="flex items-center gap-2 text-[11.5px] text-text-3 mt-3">
       <Icon name="info" :size="13" />
-      报表数据由本地模拟数据聚合而成（346 笔订单 / 61 个商品），导出为前端直接生成的 Excel 文件。
+      {{ $t('report.footNote') }}
     </div>
   </PageShell>
 </template>

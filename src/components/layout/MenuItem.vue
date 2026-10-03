@@ -6,6 +6,7 @@
  */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 
 const props = defineProps({
@@ -18,6 +19,10 @@ const props = defineProps({
 const emit = defineEmits(['navigate'])
 
 const route = useRoute()
+const { t } = useI18n()
+
+/** 菜单标题走后端字典，缺键时回退到 menu 里声明的中文 title */
+const label = computed(() => (props.item.i18nKey ? t(props.item.i18nKey, undefined, props.item.title) : props.item.title))
 
 /** 详情页高亮到它所属的列表页 */
 const activeName = computed(() => {
@@ -42,7 +47,7 @@ const active = computed(() => activeName.value === props.item.name)
       color: active ? 'var(--c-sidebar-active)' : 'var(--c-sidebar-text)',
       fontWeight: active ? 600 : 400,
     }"
-    :title="collapsed ? item.title : ''"
+    :title="collapsed ? label : ''"
     @click="emit('navigate')"
   >
     <span
@@ -51,12 +56,12 @@ const active = computed(() => activeName.value === props.item.name)
       :style="{ width: '2.5px', height: '16px', background: 'var(--c-primary)' }"
     />
     <Icon :name="item.icon" :size="flat ? 16 : 15" />
-    <span v-if="!collapsed" class="text-[13.5px] flex-1 truncate">{{ item.title }}</span>
+    <span v-if="!collapsed" class="text-[13.5px] flex-1 truncate">{{ label }}</span>
     <span
       v-if="!collapsed && item.badge === 'hot'"
       class="text-[10px] px-1 rounded"
       :style="{ background: 'var(--c-accent-soft)', color: 'var(--c-accent)' }"
-      >快捷</span
+      >{{ t('nav.hourly') }}</span
     >
   </RouterLink>
 </template>

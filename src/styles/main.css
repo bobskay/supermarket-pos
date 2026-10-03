@@ -5,10 +5,23 @@
    （html[data-theme='midnight'] 自身与它的所有后代都算暗色） */
 @custom-variant dark (&:where([data-theme='midnight'], [data-theme='midnight'] *));
 
-/* 主题变量随 data-theme 切换时的过渡（只过渡颜色，不动布局，避免抖动） */
+/* 主题 / 语言切换时的过渡（只过渡颜色与透明度，不动布局，避免抖动） */
 html.theme-anim,
 html.theme-anim * {
   transition: background-color 0.22s ease, border-color 0.22s ease, color 0.15s ease;
+}
+
+/* 语言切换：文案整体淡入一下，避免瞬间整屏文字跳动 */
+html.lang-anim body {
+  animation: lang-fade 0.26s ease both;
+}
+@keyframes lang-fade {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @layer base {

@@ -8,6 +8,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import MenuItem from './MenuItem.vue'
 
@@ -18,57 +19,65 @@ const emit = defineEmits(['navigate'])
 
 const route = useRoute()
 const { hasPermission, isManager, user } = useAuth()
+const { t } = useI18n()
 
-/** 菜单声明：key = 路由 name */
+/** 菜单声明：key = 路由 name；i18nKey 用于多语言，title 作为中文兜底 */
 const MENUS = [
   {
     group: '概览',
+    i18nKey: 'nav.groupOverview',
     icon: 'grid',
-    items: [{ name: 'dashboard', title: '经营看板', icon: 'dashboard' }],
+    items: [{ name: 'dashboard', i18nKey: 'nav.dashboard', title: '经营看板', icon: 'dashboard' }],
   },
   {
     group: '收银',
+    i18nKey: 'nav.groupCashier',
     icon: 'cart',
     items: [
-      { name: 'pos', title: '收银开单', icon: 'scan', badge: 'hot' },
-      { name: 'orders', title: '订单管理', icon: 'receipt' },
+      { name: 'pos', i18nKey: 'nav.pos', title: '收银开单', icon: 'scan', badge: 'hot' },
+      { name: 'orders', i18nKey: 'nav.orders', title: '订单管理', icon: 'receipt' },
     ],
   },
   {
     group: '会员',
+    i18nKey: 'nav.groupMember',
     icon: 'members',
-    items: [{ name: 'members', title: '会员管理', icon: 'members' }],
+    items: [{ name: 'members', i18nKey: 'nav.members', title: '会员管理', icon: 'members' }],
   },
   {
     group: '商品',
+    i18nKey: 'nav.groupProduct',
     icon: 'product',
     items: [
-      { name: 'products', title: '商品档案', icon: 'product' },
-      { name: 'categories', title: '商品分类', icon: 'tag' },
+      { name: 'products', i18nKey: 'nav.products', title: '商品档案', icon: 'product' },
+      { name: 'categories', i18nKey: 'nav.categories', title: '商品分类', icon: 'tag' },
     ],
   },
   {
     group: '库存',
+    i18nKey: 'nav.groupStock',
     icon: 'stock',
     items: [
-      { name: 'stock', title: '实时库存', icon: 'stock' },
-      { name: 'purchase', title: '采购入库', icon: 'truck' },
-      { name: 'stock-logs', title: '库存流水', icon: 'history' },
-      { name: 'stock-check', title: '库存盘点', icon: 'ruler' },
+      { name: 'stock', i18nKey: 'nav.stock', title: '实时库存', icon: 'stock' },
+      { name: 'purchase', i18nKey: 'nav.purchase', title: '采购入库', icon: 'truck' },
+      { name: 'stock-logs', i18nKey: 'nav.stockLogs', title: '库存流水', icon: 'history' },
+      { name: 'stock-check', i18nKey: 'nav.stockCheck', title: '库存盘点', icon: 'ruler' },
     ],
   },
   {
     group: '数据',
+    i18nKey: 'nav.groupData',
     icon: 'chart',
-    items: [{ name: 'reports', title: '报表统计', icon: 'chartBar' }],
+    items: [{ name: 'reports', i18nKey: 'nav.reports', title: '报表统计', icon: 'chartBar' }],
   },
   {
     group: '系统',
+    i18nKey: 'nav.groupSystem',
     icon: 'settings',
     items: [
-      { name: 'users', title: '用户管理', icon: 'users' },
-      { name: 'logs', title: '操作日志', icon: 'log' },
-      { name: 'settings', title: '系统设置', icon: 'settings' },
+      { name: 'users', i18nKey: 'nav.users', title: '用户管理', icon: 'users' },
+      { name: 'logs', i18nKey: 'nav.logs', title: '操作日志', icon: 'log' },
+      { name: 'settings', i18nKey: 'nav.settings', title: '系统设置', icon: 'settings' },
     ],
   },
 ]
@@ -150,8 +159,8 @@ const initials = computed(() => (user.value?.employeeNo || '').slice(0, 3))
         <Icon name="storeFront" :size="17" />
       </div>
       <div v-if="!collapsed" class="min-w-0">
-        <div class="text-[13.5px] font-semibold leading-tight truncate">超市收银系统</div>
-        <div class="text-[10.5px] text-text-3 leading-tight tracking-wide">SUPERMARKET POS</div>
+        <div class="text-[13.5px] font-semibold leading-tight truncate">{{ t('nav.brand') }}</div>
+        <div class="text-[10.5px] text-text-3 leading-tight tracking-wide">{{ t('nav.brandSub') }}</div>
       </div>
     </div>
 
@@ -181,7 +190,7 @@ const initials = computed(() => (user.value?.employeeNo || '').slice(0, 3))
             @click="toggleGroup(g.group)"
           >
             <Icon :name="g.icon" :size="13" />
-            <span class="flex-1 text-left">{{ g.group }}</span>
+            <span class="flex-1 text-left">{{ g.i18nKey ? t(g.i18nKey, undefined, g.group) : g.group }}</span>
             <Icon
               :name="openGroups.has(g.group) ? 'chevronDown' : 'chevronRight'"
               :size="12"
@@ -212,10 +221,10 @@ const initials = computed(() => (user.value?.employeeNo || '').slice(0, 3))
       >
         <div class="flex items-center gap-1.5 text-[11.5px] text-text-2">
           <span class="w-1.5 h-1.5 rounded-full" :style="{ background: 'var(--c-success)' }" />
-          门店在线
+          {{ t('nav.online') }}
         </div>
-        <div class="text-[11px] text-text-3 mt-1 truncate">惠民生活超市 · 中心店</div>
-        <div class="text-[11px] text-text-3 truncate">工号 {{ initials || '—' }} · 白班</div>
+        <div class="text-[11px] text-text-3 mt-1 truncate">{{ t('nav.storeName') }}</div>
+        <div class="text-[11px] text-text-3 truncate">{{ t('nav.shift', { no: initials || '—' }) }}</div>
       </div>
       <div v-else class="flex justify-center py-1.5">
         <span class="w-1.5 h-1.5 rounded-full" :style="{ background: 'var(--c-success)' }" />

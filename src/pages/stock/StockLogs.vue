@@ -16,6 +16,7 @@ import { exportXls } from '@/utils/export'
 import { useTable } from '@/composables/useTable'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -29,29 +30,49 @@ import Icon from '@/components/ui/Icon.vue'
 const router = useRouter()
 const toast = useToast()
 const { isManager } = useAuth()
+const { t, tl } = useI18n()
 
-/** 变动类型 → 中文名 + 徽章配色（与业务约定一一对应） */
-const LOG_TYPE_MAP = {
-  purchase: { label: '采购入库', class: 'badge-info' },
-  loss: { label: '损耗', class: 'badge-warning' },
-  damage: { label: '破损', class: 'badge-danger' },
-  check: { label: '盘盈', class: 'badge-success' },
+/** 变动类型 → 文案 key + 徽章配色（与业务约定一一对应） */
+const LOG_TYPE_KEY = {
+  purchase: 'stock.typePurchase',
+  loss: 'stock.typeLoss',
+  damage: 'stock.typeDamage',
+  check: 'stock.typeCheckUp',
+}
+const LOG_TYPE_CLASS = {
+  purchase: 'badge-info',
+  loss: 'badge-warning',
+  damage: 'badge-danger',
+  check: 'badge-success',
+}
+const LOG_TYPE_MAP = computed(() =>
+  Object.fromEntries(
+    Object.entries(LOG_TYPE_KEY).map(([k, key]) => [
+      k,
+      { label: t(key), class: LOG_TYPE_CLASS[k] },
+    ]),
+  ),
+)
+
+/** 未知类型码回退到数据里的中文 name */
+function logTypeText(row) {
+  return LOG_TYPE_KEY[row.type] ? t(LOG_TYPE_KEY[row.type]) : tl(row, 'typeName', row.type)
 }
 
-const TYPE_OPTIONS = [
-  { value: '', label: '全部类型' },
-  { value: 'purchase', label: '采购入库' },
-  { value: 'loss', label: '损耗' },
-  { value: 'damage', label: '破损' },
-  { value: 'check', label: '盘盈' },
-]
+const TYPE_OPTIONS = computed(() => [
+  { value: '', label: t('stock.allTypes') },
+  { value: 'purchase', label: t('stock.typePurchase') },
+  { value: 'loss', label: t('stock.typeLoss') },
+  { value: 'damage', label: t('stock.typeDamage') },
+  { value: 'check', label: t('stock.typeCheckUp') },
+])
 
-const t = useTable(stockApi.logs, {
+const table = useTable(stockApi.logs, {
   filters: { keyword: '', type: '', startDate: '', endDate: '' },
   pageSize: 20,
 })
 // 解构出 ref 与常用方法：模板里直接写 list / total / loading，避免对象内 ref 解包带来的不确定性
-const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = t
+const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = table
 
 
 const logs = ref([])
@@ -66,40 +87,40 @@ const stats = computed(() => {
   return [
     {
       key: 'purchase',
-      label: '采购入库笔数',
+      label: t('stock.logStatPurchase'),
       value: thousands(count('purchase')),
-      unit: '笔',
-      sub: `共入库 ${qty(sumType('purchase'))} 件`,
+      unit: t('stock.times'),
+      sub: t('stock.subIn', { n: qty(sumType('purchase')) }),
       icon: 'truck',
       color: 'var(--c-info)',
       bg: 'var(--c-info-soft)',
     },
     {
       key: 'loss',
-      label: '损耗笔数',
+      label: t('stock.logStatLoss'),
       value: thousands(count('loss')),
-      unit: '笔',
-      sub: `共减少 ${qty(sumType('loss'))} 件`,
+      unit: t('stock.times'),
+      sub: t('stock.subDecrease', { n: qty(sumType('loss')) }),
       icon: 'trendDown',
       color: 'var(--c-warning)',
       bg: 'var(--c-warning-soft)',
     },
     {
       key: 'check',
-      label: '盘盈笔数',
+      label: t('stock.logStatCheck'),
       value: thousands(count('check')),
-      unit: '笔',
-      sub: `共增加 ${qty(sumType('check'))} 件`,
+      unit: t('stock.times'),
+      sub: t('stock.subIncrease', { n: qty(sumType('check')) }),
       icon: 'fileAdd',
       color: 'var(--c-success)',
       bg: 'var(--c-success-soft)',
     },
     {
       key: 'damage',
-      label: '破损笔数',
+      label: t('stock.logStatDamage'),
       value: thousands(count('damage')),
-      unit: '笔',
-      sub: '含搬运与包装破损',
+      unit: t('stock.times'),
+      sub: t('stock.subDamageNote'),
       icon: 'alert',
       color: 'var(--c-danger)',
       bg: 'var(--c-danger-soft)',
@@ -114,18 +135,18 @@ const earliest = computed(() => {
   return rows.reduce((min, r) => (r.createdAt < min ? r.createdAt : min), rows[0].createdAt).slice(0, 10)
 })
 
-const columns = [
-  { key: 'createdAt', label: '时间', width: 152 },
-  { key: 'type', label: '类型', width: 96, align: 'center' },
-  { key: 'barcode', label: '条码', width: 134 },
-  { key: 'productName', label: '商品名称', width: 168 },
-  { key: 'changeQty', label: '变动数量', width: 104, align: 'right' },
-  { key: 'beforeQty', label: '调整前', width: 82, align: 'right', format: (r) => qty(r.beforeQty) },
-  { key: 'afterQty', label: '调整后', width: 82, align: 'right', format: (r) => qty(r.afterQty) },
-  { key: 'reason', label: '原因', width: 160 },
-  { key: 'relatedNo', label: '关联单号', width: 140 },
-  { key: 'operator', label: '操作人', width: 90 },
-]
+const columns = computed(() => [
+  { key: 'createdAt', label: t('stock.time'), width: 152 },
+  { key: 'type', label: t('stock.logType'), width: 96, align: 'center' },
+  { key: 'barcode', label: t('stock.barcode'), width: 134 },
+  { key: 'productName', label: t('stock.productName'), width: 168 },
+  { key: 'changeQty', label: t('stock.changeQty'), width: 104, align: 'right' },
+  { key: 'beforeQty', label: t('stock.beforeQty'), width: 82, align: 'right', format: (r) => qty(r.beforeQty) },
+  { key: 'afterQty', label: t('stock.afterQty'), width: 82, align: 'right', format: (r) => qty(r.afterQty) },
+  { key: 'reason', label: t('stock.reason'), width: 160 },
+  { key: 'relatedNo', label: t('stock.relatedNo'), width: 140 },
+  { key: 'operator', label: t('stock.operator'), width: 90 },
+])
 
 async function loadStats() {
   statsLoading.value = true
@@ -168,7 +189,7 @@ async function onExport() {
     ['时间', '类型', '条码', '商品名称', '变动数量', '调整前', '调整后', '原因', '关联单号', '操作人'],
     list.map((r) => [
       r.createdAt,
-      LOG_TYPE_MAP[r.type]?.label || r.typeName || r.type,
+      logTypeText(r),
       r.barcode,
       r.productName,
       Number(r.changeQty || 0) > 0 ? `+${qty(r.changeQty)}` : qty(r.changeQty),
@@ -180,15 +201,15 @@ async function onExport() {
     ]),
     `库存流水明细（共 ${list.length} 条）`,
   )
-  toast.ok(`已导出 ${list.length} 条流水记录`)
+  toast.ok(t('stock.logsExported', { n: list.length }))
 }
 </script>
 
 <template>
   <PageShell>
-    <PageHeader title="库存流水" desc="所有库存变动均留痕：采购入库 / 损耗 / 破损 / 盘点" icon="history">
+    <PageHeader :title="$t('stock.logsTitle')" :desc="$t('stock.logsDesc')" icon="history">
       <template #actions>
-        <AppButton v-if="isManager" icon="download" @click="onExport">导出流水</AppButton>
+        <AppButton v-if="isManager" icon="download" @click="onExport">{{ $t('stock.exportLogs') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -196,11 +217,11 @@ async function onExport() {
     <div v-if="!isManager" class="card card-pad">
       <div class="empty">
         <Icon name="lock" :size="30" class="text-text-3" />
-        <div class="text-text text-[15px] font-semibold">权限不足</div>
+        <div class="text-text text-[15px] font-semibold">{{ $t('common.noPermission') }}</div>
         <div class="text-xs text-text-3 max-w-[420px]">
-          「库存流水」包含进价与报损信息，仅店长可查看。收银员如需核对库存，请联系店长。
+          {{ $t('stock.logsPermTip') }}
         </div>
-        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">返回收银台</AppButton>
+        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">{{ $t('stock.backToPos') }}</AppButton>
       </div>
     </div>
 
@@ -236,36 +257,36 @@ async function onExport() {
       <!-- 筛选栏 -->
       <div class="card card-pad mt-3">
         <div class="flex items-end flex-wrap gap-3">
-          <FormField label="关键字" class="w-[240px]">
+          <FormField :label="$t('common.keyword')" class="w-[240px]">
             <SearchInput
               v-model="query.keyword"
-              placeholder="商品名 / 条码 / 原因 / 单号"
+              :placeholder="$t('stock.logsSearchPlaceholder')"
               width="100%"
               @search="onQuery"
               @enter="onQuery"
             />
           </FormField>
-          <FormField label="类型" class="w-[140px]">
+          <FormField :label="$t('common.type')" class="w-[140px]">
             <select v-model="query.type" class="input w-full" @change="onQuery">
               <option v-for="o in TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </FormField>
-          <FormField label="开始日期" class="w-[150px]">
+          <FormField :label="$t('common.startDate')" class="w-[150px]">
             <input v-model="query.startDate" type="date" class="input w-full" @change="onQuery" />
           </FormField>
-          <FormField label="结束日期" class="w-[150px]">
+          <FormField :label="$t('common.endDate')" class="w-[150px]">
             <input v-model="query.endDate" type="date" class="input w-full" @change="onQuery" />
           </FormField>
           <div class="flex items-center gap-2 pb-[1px]">
-            <AppButton variant="primary" icon="search" @click="onQuery">查询</AppButton>
-            <AppButton icon="refresh" @click="onReset">重置</AppButton>
+            <AppButton variant="primary" icon="search" @click="onQuery">{{ $t('common.search') }}</AppButton>
+            <AppButton icon="refresh" @click="onReset">{{ $t('common.reset') }}</AppButton>
           </div>
           <div class="flex-1" />
           <div class="flex items-center gap-1.5 pb-1.5">
-            <span class="text-xs text-text-3 mr-1">快捷区间</span>
-            <button class="badge badge-muted" @click="quickRange(7)">近 7 天</button>
-            <button class="badge badge-muted" @click="quickRange(30)">近 30 天</button>
-            <button class="badge badge-muted" @click="quickRange(90)">近 90 天</button>
+            <span class="text-xs text-text-3 mr-1">{{ $t('stock.quickRange') }}</span>
+            <button class="badge badge-muted" @click="quickRange(7)">{{ $t('stock.lastNDays', { n: 7 }) }}</button>
+            <button class="badge badge-muted" @click="quickRange(30)">{{ $t('stock.lastNDays', { n: 30 }) }}</button>
+            <button class="badge badge-muted" @click="quickRange(90)">{{ $t('stock.lastNDays', { n: 90 }) }}</button>
           </div>
         </div>
       </div>
@@ -276,8 +297,8 @@ async function onExport() {
           :columns="columns"
           :list="list"
           :loading="loading"
-          empty-text="没有符合条件的库存流水"
-          empty-hint="库存调整、采购入库后会自动生成流水"
+          :empty-text="$t('stock.logsEmptyText')"
+          :empty-hint="$t('stock.logsEmptyHint')"
         >
           <template #cell-createdAt="{ row }">
             <div class="leading-tight">
@@ -334,7 +355,7 @@ async function onExport() {
         </div>
       </div>
 
-      <div class="text-xs text-text-3 mt-2">统计口径：全部流水（最早 {{ earliest }}），不受上方筛选影响</div>
+      <div class="text-xs text-text-3 mt-2">{{ $t('stock.statsScope', { date: earliest }) }}</div>
     </template>
   </PageShell>
 </template>

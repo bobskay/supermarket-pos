@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 
 const router = useRouter()
 const { isLogin } = useAuth()
+const { t, tl } = useI18n()
 </script>
 
 <template>
@@ -19,13 +21,13 @@ const { isLogin } = useAuth()
         <Icon name="search" :size="28" />
       </div>
       <div class="text-[40px] font-semibold tracking-tight" :style="{ color: 'var(--c-text-3)' }">404</div>
-      <h1 class="text-[18px] font-semibold mt-1">页面不存在</h1>
-      <p class="text-[13px] text-text-2 mt-2">链接可能已失效，或页面已被移动到其他菜单下。</p>
+      <h1 class="text-[18px] font-semibold mt-1">{{ $t('notFound.title') }}</h1>
+      <p class="text-[13px] text-text-2 mt-2">{{ $t('notFound.desc') }}</p>
       <div class="flex items-center justify-center gap-2 mt-6">
         <AppButton v-if="isLogin" variant="primary" icon="dashboard" @click="router.replace({ name: 'dashboard' })">
-          回到经营看板
+          {{ $t('notFound.backDashboard') }}
         </AppButton>
-        <AppButton v-else variant="primary" @click="router.replace({ name: 'login' })">去登录</AppButton>
+        <AppButton v-else variant="primary" @click="router.replace({ name: 'login' })">{{ $t('notFound.goLogin') }}</AppButton>
       </div>
     </div>
   </div>

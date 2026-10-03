@@ -1,5 +1,7 @@
 /** 通用格式化 / 小工具 */
 
+import { locale, t } from '@/i18n'
+
 /** 金额：￥12.30 */
 export function money(n, withSymbol = true) {
   const v = Number(n || 0)
@@ -32,16 +34,19 @@ export function dateOnly(s) {
   return String(s || '').slice(0, 10)
 }
 
-/** 相对时间：刚刚 / 12 分钟前 / 3 小时前 / 2 天前 */
+/**
+ * 相对时间：刚刚 / 12 分钟前 / 3 小时前 / 2 天前
+ * 英文环境走字典，避免切换语言后这里还显示中文
+ */
 export function fromNow(str) {
   if (!str) return '-'
-  const t = new Date(String(str).replace(/-/g, '/')).getTime()
-  if (Number.isNaN(t)) return str
-  const diff = Date.now() - t
-  if (diff < 60_000) return '刚刚'
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`
-  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时前`
-  if (diff < 2592000_000) return `${Math.floor(diff / 86400_000)} 天前`
+  const time = new Date(String(str).replace(/-/g, '/')).getTime()
+  if (Number.isNaN(time)) return str
+  const diff = Date.now() - time
+  if (diff < 60_000) return t('common.justNow')
+  if (diff < 3600_000) return t('common.minutesAgo', { n: Math.floor(diff / 60_000) })
+  if (diff < 86400_000) return t('common.hoursAgo', { n: Math.floor(diff / 3600_000) })
+  if (diff < 2592000_000) return t('common.daysAgo', { n: Math.floor(diff / 86400_000) })
   return dateOnly(str)
 }
 

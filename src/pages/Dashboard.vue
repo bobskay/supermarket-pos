@@ -9,6 +9,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { reportApi } from '@/api'
 import { money, thousands, percent, timeShort, ORDER_STATUS_STYLE } from '@/utils/format'
+import { useI18n } from '@/i18n'
 import { useAuth } from '@/composables/useAuth'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -20,6 +21,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const { user } = useAuth()
+const { t, tl } = useI18n()
 
 const loading = ref(true)
 const data = ref(null)
@@ -29,48 +31,53 @@ const kpis = computed(() => {
   const k = data.value?.kpi || {}
   return [
     {
-      label: '今日销售额',
+      key: 'sales',
+      label: t('dashboard.todaySales'),
       value: money(k.todaySales || 0),
       compare: k.todaySalesCompare,
       icon: 'money',
       color: 'var(--c-primary)',
       bg: 'var(--c-primary-soft)',
-      foot: '较昨日',
+      foot: t('dashboard.vsYesterday'),
     },
     {
-      label: '今日订单数',
+      key: 'orders',
+      label: t('dashboard.todayOrders'),
       value: thousands(k.todayOrders || 0),
-      unit: '单',
+      unit: t('dashboard.unitOrder'),
       compare: k.todayOrdersCompare,
       icon: 'receipt',
       color: 'var(--c-accent)',
       bg: 'var(--c-accent-soft)',
-      foot: '较昨日',
+      foot: t('dashboard.vsYesterday'),
     },
     {
-      label: '会员消费人次',
+      key: 'members',
+      label: t('dashboard.todayMembers'),
       value: thousands(k.todayMembers || 0),
-      unit: '人',
+      unit: t('dashboard.unitPerson'),
       icon: 'members',
       color: 'var(--c-purple)',
       bg: 'var(--c-purple-soft)',
-      foot: '今日到店会员',
+      foot: t('dashboard.todayMemberVisit'),
     },
     {
-      label: '客单价',
+      key: 'avgPrice',
+      label: t('dashboard.avgPrice'),
       value: money(k.todayAvgPrice || 0),
       icon: 'target',
       color: 'var(--c-warning)',
       bg: 'var(--c-warning-soft)',
-      foot: '销售额 ÷ 订单数',
+      foot: t('dashboard.avgPriceFormula'),
     },
     {
-      label: '今日毛利',
+      key: 'profit',
+      label: t('dashboard.grossProfit'),
       value: money(k.grossProfit || 0),
       icon: 'trendUp',
       color: 'var(--c-success)',
       bg: 'var(--c-success-soft)',
-      foot: '售价 - 进价',
+      foot: t('dashboard.grossFormula'),
     },
   ]
 })
@@ -82,12 +89,12 @@ const recent = computed(() => data.value?.recentOrders || [])
 const warnings = computed(() => data.value?.warningList || [])
 
 const todos = computed(() => {
-  const t = data.value?.todo || {}
+  const todo = data.value?.todo || {}
   return [
-    { label: '库存不足商品', value: t.lowStock || 0, icon: 'alert', tone: 'warning', to: { name: 'stock', query: { stockState: 'low' } } },
-    { label: '已售罄商品', value: t.emptyStock || 0, icon: 'package', tone: 'danger', to: { name: 'stock', query: { stockState: 'empty' } } },
-    { label: '待入库采购单', value: t.pendingPurchase || 0, icon: 'truck', tone: 'info', to: { name: 'purchase' } },
-    { label: '今日退款', value: t.refundToday || 0, icon: 'undo', tone: 'purple', to: { name: 'orders', query: { status: 'refunded' } } },
+    { label: t('dashboard.lowStock'), value: todo.lowStock || 0, icon: 'alert', tone: 'warning', to: { name: 'stock', query: { stockState: 'low' } } },
+    { label: t('dashboard.emptyStock'), value: todo.emptyStock || 0, icon: 'package', tone: 'danger', to: { name: 'stock', query: { stockState: 'empty' } } },
+    { label: t('dashboard.pendingPurchase'), value: todo.pendingPurchase || 0, icon: 'truck', tone: 'info', to: { name: 'purchase' } },
+    { label: t('dashboard.refundToday'), value: todo.refundToday || 0, icon: 'undo', tone: 'purple', to: { name: 'orders', query: { status: 'refunded' } } },
   ]
 })
 
@@ -98,20 +105,31 @@ const TODOS_TONE = {
   purple: { bg: 'var(--c-purple-soft)', color: 'var(--c-purple)' },
 }
 
-const columns = [
-  { key: 'orderNo', label: '订单号', width: 150 },
-  { key: 'memberName', label: '顾客', width: 90, format: (r) => r.memberName || '散客' },
-  { key: 'itemCount', label: '件数', width: 60, align: 'right' },
-  { key: 'finalAmount', label: '金额', width: 90, align: 'right', format: (r) => money(r.finalAmount) },
-  { key: 'status', label: '状态', width: 86 },
-  { key: 'createdAt', label: '时间', width: 70, align: 'right', format: (r) => timeShort(r.createdAt) },
-]
+const columns = computed(() => [
+  { key: 'orderNo', label: t('dashboard.recentOrderNo'), width: 150 },
+  { key: 'memberName', label: t('dashboard.recentCustomer'), width: 90, format: (r) => r.memberName || t('dashboard.guest') },
+  { key: 'itemCount', label: t('order.items'), width: 60, align: 'right' },
+  { key: 'finalAmount', label: t('order.finalAmount'), width: 90, align: 'right', format: (r) => money(r.finalAmount) },
+  { key: 'status', label: t('common.status'), width: 86 },
+  { key: 'createdAt', label: t('log.time'), width: 70, align: 'right', format: (r) => timeShort(r.createdAt) },
+])
 
-const greeting = computed(() => {
+/** 按当前小时选问候语：返回字典键，模板里再 t() 一次 */
+const greetingKey = computed(() => {
   const h = new Date().getHours()
-  const word = h < 6 ? '凌晨好' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'
-  return `${word}，${user.value?.name || ''}`
+  return h < 6
+    ? 'dashboard.greetingNight'
+    : h < 11
+      ? 'dashboard.greetingMorning'
+      : h < 14
+        ? 'dashboard.greetingNoon'
+        : h < 18
+          ? 'dashboard.greetingAfternoon'
+          : 'dashboard.greetingEvening'
 })
+
+const greeting = computed(() => t('dashboard.greetingJoin', { name: user.value?.name || '' }))
+
 
 async function load() {
   loading.value = true
@@ -128,10 +146,10 @@ onMounted(load)
 
 <template>
   <PageShell>
-    <PageHeader title="经营看板" :desc="`${greeting} · 数据更新于 ${data?.updatedAt || '—'}`" icon="dashboard">
+    <PageHeader :title="$t('dashboard.title')" :desc="$t('dashboard.headerDesc', { greeting, time: data?.updatedAt || '—' })" icon="dashboard">
       <template #actions>
         <AppButton icon="refresh" :loading="loading" @click="load" />
-        <AppButton variant="primary" icon="scan" @click="router.push({ name: 'pos' })">去收银</AppButton>
+        <AppButton variant="primary" icon="scan" @click="router.push({ name: 'pos' })">{{ $t('dashboard.goPos') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -144,7 +162,7 @@ onMounted(load)
           <div class="skeleton" style="height: 12px; width: 45%" />
         </div>
       </template>
-      <div v-for="k in kpis" v-else :key="k.label" class="kpi">
+      <div v-for="k in kpis" v-else :key="k.key" class="kpi">
         <div class="flex items-start justify-between">
           <div class="kpi-label">{{ k.label }}</div>
           <span
@@ -180,8 +198,8 @@ onMounted(load)
         <div class="card">
           <div class="panel-head">
             <div>
-              <div class="text-[14px] font-semibold">销售走势</div>
-              <div class="text-[11.5px] text-text-3 mt-0.5">销售额与订单量趋势</div>
+              <div class="text-[14px] font-semibold">{{ $t('dashboard.trend') }}</div>
+              <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('dashboard.trendDesc') }}</div>
             </div>
             <div class="seg">
               <button
@@ -191,7 +209,7 @@ onMounted(load)
                 :class="trendDays === d && 'is-active'"
                 @click="trendDays = d"
               >
-                近 {{ d }} 天
+                {{ $t('dashboard.trendDays', { n: d }) }}
               </button>
             </div>
           </div>
@@ -202,8 +220,8 @@ onMounted(load)
               :data="trend"
               x-key="date"
               :series="[
-                { key: 'amount', name: '销售额', area: true },
-                { key: 'orders', name: '订单数', color: 'var(--c-accent)' },
+                { key: 'amount', name: $t('report.metricAmount'), area: true },
+                { key: 'orders', name: $t('report.metricOrders'), color: 'var(--c-accent)' },
               ]"
               money
               height="268px"
@@ -215,9 +233,9 @@ onMounted(load)
         <!-- 最近订单 -->
         <div class="card">
           <div class="panel-head">
-            <div class="text-[14px] font-semibold">最近成交订单</div>
+            <div class="text-[14px] font-semibold">{{ $t('dashboard.recentOrders') }}</div>
             <button class="text-[12.5px] text-primary hover:underline" @click="router.push({ name: 'orders' })">
-              查看全部
+              {{ $t('dashboard.viewAll') }}
             </button>
           </div>
           <DataTable :columns="columns" :list="recent" :loading="loading" hover>
@@ -228,7 +246,7 @@ onMounted(load)
                   class="w-1.5 h-1.5 rounded-full"
                   :style="{ background: 'var(--c-primary)' }"
                 />
-                {{ row.memberName || '散客' }}
+                {{ row.memberName || $t('dashboard.guest') }}
               </span>
             </template>
             <template #cell-finalAmount="{ row }">
@@ -250,7 +268,7 @@ onMounted(load)
       <div class="space-y-3">
         <!-- 待办 -->
         <div class="card card-pad">
-          <div class="text-[14px] font-semibold mb-3">待办事项</div>
+          <div class="text-[14px] font-semibold mb-3">{{ $t('dashboard.todo') }}</div>
           <div class="space-y-1.5">
             <button
               v-for="t in todos"
@@ -273,7 +291,7 @@ onMounted(load)
 
         <!-- 支付方式 -->
         <div class="card">
-          <div class="panel-head"><div class="text-[14px] font-semibold">品类销售占比</div></div>
+          <div class="panel-head"><div class="text-[14px] font-semibold">{{ $t('dashboard.categoryShare') }}</div></div>
           <div class="p-3">
             <AppChart
               v-if="category.length"
@@ -290,7 +308,7 @@ onMounted(load)
 
         <!-- 热销 -->
         <div class="card">
-          <div class="panel-head"><div class="text-[14px] font-semibold">热销商品 Top 5</div></div>
+          <div class="panel-head"><div class="text-[14px] font-semibold">{{ $t('dashboard.hotTitle') }}</div></div>
           <div class="p-2">
             <div
               v-for="(p, i) in hot.slice(0, 5)"
@@ -306,7 +324,7 @@ onMounted(load)
                 >{{ i + 1 }}</span
               >
               <span class="flex-1 min-w-0 text-[13px] truncate">{{ p.name }}</span>
-              <span class="text-[12.5px] num text-text-2">{{ p.qty }}{{ p.unit }}</span>
+              <span class="text-[12.5px] num text-text-2">{{ p.qty }}{{ p.unit || $t('dashboard.unitPiece') }}</span>
               <span class="text-[12.5px] price">{{ money(p.amount) }}</span>
             </div>
           </div>
@@ -315,15 +333,15 @@ onMounted(load)
         <!-- 库存预警 -->
         <div class="card">
           <div class="panel-head">
-            <div class="text-[14px] font-semibold">库存预警</div>
+            <div class="text-[14px] font-semibold">{{ $t('dashboard.stockWarning') }}</div>
             <button class="text-[12.5px] text-primary hover:underline" @click="router.push({ name: 'stock' })">
-              去补货
+              {{ $t('dashboard.restock') }}
             </button>
           </div>
           <div class="p-2">
             <div v-if="!warnings.length" class="empty py-6">
               <Icon name="check" :size="22" :style="{ color: 'var(--c-success)' }" />
-              <div class="text-[13px]">库存状态良好</div>
+              <div class="text-[13px]">{{ $t('dashboard.stockHealthy') }}</div>
             </div>
             <div
               v-for="w in warnings.slice(0, 6)"
@@ -338,7 +356,7 @@ onMounted(load)
               />
               <span class="flex-1 min-w-0 text-[12.5px] truncate">{{ w.name }}</span>
               <span class="text-[12px] num" :style="{ color: w.stock === 0 ? 'var(--c-danger)' : 'var(--c-warning)' }">
-                剩 {{ w.stock }}{{ w.unit }}
+                {{ $t('dashboard.stockLeft', { n: w.stock, unit: w.unit }) }}
               </span>
             </div>
           </div>

@@ -18,6 +18,7 @@ import { useTable } from '@/composables/useTable'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -33,17 +34,28 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const { isManager, displayName } = useAuth()
+const { t, tl } = useI18n()
 
-const PURCHASE_STATUS_MAP = {
-  pending: { label: '待入库', class: 'badge-warning' },
-  received: { label: '已入库', class: 'badge-success' },
+/** 状态码 → 字典键；未知码回退到数据里的中文 name */
+const STATUS_KEY = { pending: 'stock.pending', received: 'stock.received' }
+const PURCHASE_STATUS_STYLE = { pending: 'badge-warning', received: 'badge-success' }
+const PURCHASE_STATUS_MAP = computed(() =>
+  Object.fromEntries(
+    Object.entries(STATUS_KEY).map(([k, key]) => [k, { label: t(key), class: PURCHASE_STATUS_STYLE[k] }]),
+  ),
+)
+
+/** 按状态码取文案，未知码回退到数据里的 name 字段 */
+function statusText(row) {
+  if (STATUS_KEY[row.status]) return t(STATUS_KEY[row.status])
+  return tl(row, 'statusName', row.status)
 }
 
-const STATUS_OPTIONS = [
-  { value: '', label: '全部状态' },
-  { value: 'pending', label: '待入库' },
-  { value: 'received', label: '已入库' },
-]
+const STATUS_OPTIONS = computed(() => [
+  { value: '', label: t('stock.allStates') },
+  { value: 'pending', label: t('stock.pending') },
+  { value: 'received', label: t('stock.received') },
+])
 
 /** 预置供应商：演示时不必手输，避免因缺数据卡住流程 */
 const SUPPLIERS = [
@@ -55,12 +67,12 @@ const SUPPLIERS = [
   '联和饮料经销商',
 ]
 
-const t = useTable(stockApi.purchaseOrders, {
+const table = useTable(stockApi.purchaseOrders, {
   filters: { keyword: '', status: '', startDate: '', endDate: '' },
   pageSize: 20,
 })
 // 解构出 ref 与常用方法：模板里直接写 list / total / loading，避免对象内 ref 解包带来的不确定性
-const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = t
+const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = table
 
 
 const allOrders = ref([])
@@ -85,25 +97,25 @@ const summary = computed(() => {
 const kpis = computed(() => {
   const s = summary.value
   return [
-    { key: 'total', label: '进货单总数', value: thousands(s.total), unit: '单', icon: 'file', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: '历史全部进货单' },
-    { key: 'received', label: '已入库', value: thousands(s.received), unit: '单', icon: 'check', color: 'var(--c-success)', bg: 'var(--c-success-soft)', foot: '库存已增加的进货单' },
-    { key: 'pending', label: '待入库', value: thousands(s.pending), unit: '单', icon: 'clock', color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', foot: '需确认入库后方可销售' },
-    { key: 'month', label: '本月进货金额', value: money(s.monthAmount), icon: 'wallet', color: 'var(--c-purple)', bg: 'var(--c-purple-soft)', foot: '按创建时间统计本月进货成本' },
+    { key: 'total', label: t('stock.totalOrders'), value: thousands(s.total), unit: t('common.unitOrder'), icon: 'file', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: t('stock.footAllOrders') },
+    { key: 'received', label: t('stock.received'), value: thousands(s.received), unit: t('common.unitOrder'), icon: 'check', color: 'var(--c-success)', bg: 'var(--c-success-soft)', foot: t('stock.footReceived') },
+    { key: 'pending', label: t('stock.pending'), value: thousands(s.pending), unit: t('common.unitOrder'), icon: 'clock', color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', foot: t('stock.footPending') },
+    { key: 'month', label: t('stock.monthAmount'), value: money(s.monthAmount), icon: 'wallet', color: 'var(--c-purple)', bg: 'var(--c-purple-soft)', foot: t('stock.footMonthAmount') },
   ]
 })
 
-const columns = [
-  { key: 'purchaseNo', label: '进货单号', width: 146 },
-  { key: 'supplier', label: '供应商', width: 150 },
-  { key: 'itemCount', label: '商品种类', width: 88, align: 'right', format: (r) => `${qty(r.itemCount)} 种` },
-  { key: 'totalQty', label: '入库总件数', width: 100, align: 'right', format: (r) => qty(r.totalQty) },
-  { key: 'totalAmount', label: '进货金额', width: 110, align: 'right' },
-  { key: 'status', label: '状态', width: 92, align: 'center' },
-  { key: 'operator', label: '创建人', width: 90 },
-  { key: 'createdAt', label: '创建时间', width: 148 },
-  { key: 'remark', label: '备注', width: 120 },
-  { key: 'action', label: '操作', width: 210 },
-]
+const columns = computed(() => [
+  { key: 'purchaseNo', label: t('stock.purchaseNo'), width: 146 },
+  { key: 'supplier', label: t('stock.supplier'), width: 150 },
+  { key: 'itemCount', label: t('stock.kindsCount'), width: 88, align: 'right', format: (r) => `${qty(r.itemCount)} ${t('common.unitKind')}` },
+  { key: 'totalQty', label: t('stock.totalPieces'), width: 100, align: 'right', format: (r) => qty(r.totalQty) },
+  { key: 'totalAmount', label: t('stock.purchaseAmount'), width: 110, align: 'right' },
+  { key: 'status', label: t('stock.stockState'), width: 92, align: 'center' },
+  { key: 'operator', label: t('stock.creator'), width: 90 },
+  { key: 'createdAt', label: t('stock.createdAt'), width: 148 },
+  { key: 'remark', label: t('common.remark'), width: 120 },
+  { key: 'action', label: t('common.actions'), width: 210 },
+])
 
 async function loadSummary() {
   summaryLoading.value = true
@@ -139,14 +151,14 @@ function onReset() {
 const detailVisible = ref(false)
 const detailOrder = ref(null)
 
-const detailColumns = [
-  { key: 'barcode', label: '条码', width: 136 },
-  { key: 'name', label: '商品名称', width: 190 },
-  { key: 'unit', label: '单位', width: 60, align: 'center' },
-  { key: 'costPrice', label: '进价', width: 88, align: 'right' },
-  { key: 'qty', label: '数量', width: 82, align: 'right' },
-  { key: 'amount', label: '金额', width: 100, align: 'right' },
-]
+const detailColumns = computed(() => [
+  { key: 'barcode', label: t('stock.barcode'), width: 136 },
+  { key: 'name', label: t('stock.productName'), width: 190 },
+  { key: 'unit', label: t('stock.unit'), width: 60, align: 'center' },
+  { key: 'costPrice', label: t('stock.costPrice'), width: 88, align: 'right' },
+  { key: 'qty', label: t('stock.qty'), width: 82, align: 'right' },
+  { key: 'amount', label: t('stock.subtotal'), width: 100, align: 'right' },
+])
 
 function openDetail(row) {
   detailOrder.value = row
@@ -165,9 +177,13 @@ const detailTotal = computed(() => {
 /* ------------------------------- 确认入库 ------------------------------- */
 async function confirmReceive(row) {
   const okToDo = await confirm({
-    title: '确认入库',
-    content: `确认将进货单 ${row.purchaseNo}（${row.itemCount} 种商品 / ${qty(row.totalQty)} 件）入库？确认后库存将立即增加。`,
-    confirmText: '确认入库',
+    title: t('stock.confirmReceive'),
+    content: t('stock.receiveConfirm', {
+      no: row.purchaseNo,
+      kinds: row.itemCount,
+      pieces: qty(row.totalQty),
+    }),
+    confirmText: t('stock.confirmReceive'),
   })
   if (!okToDo) return
 
@@ -180,11 +196,11 @@ async function confirmReceive(row) {
   patchLocal(row.id, { status: 'received', statusName: '已入库' })
   const hit = allOrders.value.find((x) => x.id === row.id)
   if (hit) hit.status = 'received'
-  toast.ok('入库成功，库存已增加')
+  toast.ok(t('stock.receiveOk'))
 }
 
 function printOrder(row) {
-  toast.info(`进货单 ${row.purchaseNo} 已发送至打印机（模拟）`)
+  toast.info(t('stock.printSent', { no: row.purchaseNo }))
 }
 
 function onExport() {
@@ -198,14 +214,14 @@ function onExport() {
       qty(r.itemCount),
       qty(r.totalQty),
       Number(r.totalAmount || 0).toFixed(2),
-      PURCHASE_STATUS_MAP[r.status]?.label || r.statusName,
+      statusText(r),
       r.operator,
       r.createdAt,
       r.remark,
     ]),
     `采购入库单（共 ${list.length} 张）`,
   )
-  toast.ok(`已导出 ${list.length} 张进货单`)
+  toast.ok(t('stock.purchaseExported', { n: list.length }))
 }
 
 /* ------------------------------- 新建进货单 ------------------------------- */
@@ -260,11 +276,11 @@ const createTotal = computed(() => {
 async function submitCreate() {
   const valid = lines.value.filter((l) => l.productId)
   if (!valid.length) {
-    toast.warning('请至少添加 1 行商品明细')
+    toast.warning(t('stock.needOneLine'))
     return
   }
   if (valid.some((l) => !(Number(l.qty) > 0))) {
-    toast.warning('明细数量必须大于 0')
+    toast.warning(t('stock.needQty'))
     return
   }
 
@@ -319,16 +335,16 @@ async function submitCreate() {
   unshiftLocal(draft)
   allOrders.value.unshift(draft)
   createVisible.value = false
-  toast.ok('进货单创建成功，待确认入库')
+  toast.ok(t('stock.purchaseOk'))
 }
 </script>
 
 <template>
   <PageShell>
-    <PageHeader title="采购入库" desc="登记进货单与供应商送货，确认入库后库存自动增加" icon="truck">
+    <PageHeader :title="$t('stock.purchaseTitle')" :desc="$t('stock.purchasePageDesc')" icon="truck">
       <template #actions>
-        <AppButton v-if="isManager" icon="download" @click="onExport">导出进货单</AppButton>
-        <AppButton v-if="isManager" variant="primary" icon="plus" @click="openCreate">新建进货单</AppButton>
+        <AppButton v-if="isManager" icon="download" @click="onExport">{{ $t('stock.exportPurchase') }}</AppButton>
+        <AppButton v-if="isManager" variant="primary" icon="plus" @click="openCreate">{{ $t('stock.newPurchase') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -336,11 +352,11 @@ async function submitCreate() {
     <div v-if="!isManager" class="card card-pad">
       <div class="empty">
         <Icon name="lock" :size="30" class="text-text-3" />
-        <div class="text-text text-[15px] font-semibold">权限不足</div>
+        <div class="text-text text-[15px] font-semibold">{{ $t('common.noPermission') }}</div>
         <div class="text-xs text-text-3 max-w-[420px]">
-          「采购入库」涉及供应商与进货成本，仅店长可操作。收银员如需补货，请口头或书面告知店长。
+          {{ $t('stock.purchasePermTip') }}
         </div>
-        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">返回收银台</AppButton>
+        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">{{ $t('stock.backToPos') }}</AppButton>
       </div>
     </div>
 
@@ -376,29 +392,29 @@ async function submitCreate() {
       <!-- 筛选栏 -->
       <div class="card card-pad mt-3">
         <div class="flex items-end flex-wrap gap-3">
-          <FormField label="关键字" class="w-[240px]">
+          <FormField :label="$t('common.keyword')" class="w-[240px]">
             <SearchInput
               v-model="query.keyword"
-              placeholder="进货单号 / 供应商"
+              :placeholder="$t('stock.purchaseSearchPlaceholder')"
               width="100%"
               @search="onQuery"
               @enter="onQuery"
             />
           </FormField>
-          <FormField label="状态" class="w-[140px]">
+          <FormField :label="$t('common.status')" class="w-[140px]">
             <select v-model="query.status" class="input w-full" @change="onQuery">
               <option v-for="o in STATUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </FormField>
-          <FormField label="开始日期" class="w-[150px]">
+          <FormField :label="$t('common.startDate')" class="w-[150px]">
             <input v-model="query.startDate" type="date" class="input w-full" @change="onQuery" />
           </FormField>
-          <FormField label="结束日期" class="w-[150px]">
+          <FormField :label="$t('common.endDate')" class="w-[150px]">
             <input v-model="query.endDate" type="date" class="input w-full" @change="onQuery" />
           </FormField>
           <div class="flex items-center gap-2 pb-[1px]">
-            <AppButton variant="primary" icon="search" @click="onQuery">查询</AppButton>
-            <AppButton icon="refresh" @click="onReset">重置</AppButton>
+            <AppButton variant="primary" icon="search" @click="onQuery">{{ $t('common.search') }}</AppButton>
+            <AppButton icon="refresh" @click="onReset">{{ $t('common.reset') }}</AppButton>
           </div>
         </div>
       </div>
@@ -409,8 +425,8 @@ async function submitCreate() {
           :columns="columns"
           :list="list"
           :loading="loading"
-          empty-text="没有符合条件的进货单"
-          empty-hint="点右上角「新建进货单」登记一张供应商送货单"
+          :empty-text="$t('stock.purchaseEmptyText')"
+          :empty-hint="$t('stock.purchaseEmptyHint')"
         >
           <template #cell-purchaseNo="{ row }">
             <button class="font-mono text-[12.5px] text-primary hover:underline" @click.stop="openDetail(row)">
@@ -439,18 +455,18 @@ async function submitCreate() {
 
           <template #cell-action="{ row }">
             <div class="flex items-center gap-2">
-              <button class="text-[12.5px] text-primary hover:underline" @click.stop="openDetail(row)">查看明细</button>
+              <button class="text-[12.5px] text-primary hover:underline" @click.stop="openDetail(row)">{{ $t('stock.viewDetail') }}</button>
               <button
                 v-if="row.status === 'pending'"
                 class="text-[12.5px] hover:underline"
                 :style="{ color: 'var(--c-success)' }"
                 @click.stop="confirmReceive(row)"
               >
-                确认入库
+                {{ $t('stock.confirmReceive') }}
               </button>
-              <span v-else class="text-[12.5px] text-text-3">已入库</span>
+              <span v-else class="text-[12.5px] text-text-3">{{ $t('stock.received') }}</span>
               <button class="text-[12.5px] text-text-2 hover:text-text hover:underline" @click.stop="printOrder(row)">
-                打印
+                {{ $t('common.print') }}
               </button>
             </div>
           </template>
@@ -468,41 +484,41 @@ async function submitCreate() {
     </template>
 
     <!-- 查看明细 -->
-    <AppDrawer v-model="detailVisible" title="进货单明细" width="620">
+    <AppDrawer v-model="detailVisible" :title="$t('stock.purchaseDetail')" width="620">
       <template v-if="detailOrder">
         <div class="card card-pad mb-3" :style="{ background: 'var(--c-surface-2)' }">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
               <div class="text-[15px] font-semibold num">{{ detailOrder.purchaseNo }}</div>
               <div class="text-xs text-text-3 mt-0.5">
-                {{ detailOrder.supplier }} · 创建于 {{ detailOrder.createdAt }}
+                {{ detailOrder.supplier }} · {{ $t('stock.createdAtInline', { time: detailOrder.createdAt }) }}
               </div>
             </div>
             <StatusTag :value="detailOrder.status" :map="PURCHASE_STATUS_MAP" />
           </div>
           <div class="grid grid-cols-3 gap-3 mt-3">
             <div>
-              <div class="text-xs text-text-3">商品种类</div>
-              <div class="text-[15px] font-semibold num">{{ qty(detailOrder.itemCount) }} 种</div>
+              <div class="text-xs text-text-3">{{ $t('stock.kindsCount') }}</div>
+              <div class="text-[15px] font-semibold num">{{ qty(detailOrder.itemCount) }} {{ $t('common.unitKind') }}</div>
             </div>
             <div>
-              <div class="text-xs text-text-3">入库总件数</div>
-              <div class="text-[15px] font-semibold num">{{ qty(detailOrder.totalQty) }} 件</div>
+              <div class="text-xs text-text-3">{{ $t('stock.totalPieces') }}</div>
+              <div class="text-[15px] font-semibold num">{{ qty(detailOrder.totalQty) }} {{ $t('common.unitPiece') }}</div>
             </div>
             <div>
-              <div class="text-xs text-text-3">进货金额</div>
+              <div class="text-xs text-text-3">{{ $t('stock.purchaseAmount') }}</div>
               <div class="text-[15px] font-semibold price">{{ money(detailOrder.totalAmount) }}</div>
             </div>
           </div>
-          <div v-if="detailOrder.remark" class="text-xs text-text-3 mt-2">备注：{{ detailOrder.remark }}</div>
-          <div class="text-xs text-text-3 mt-0.5">创建人：{{ detailOrder.operator }}</div>
+          <div v-if="detailOrder.remark" class="text-xs text-text-3 mt-2">{{ $t('stock.remarkInline', { text: detailOrder.remark }) }}</div>
+          <div class="text-xs text-text-3 mt-0.5">{{ $t('stock.creatorInline', { name: detailOrder.operator }) }}</div>
         </div>
 
         <DataTable
           :columns="detailColumns"
           :list="detailItems"
           :hover="false"
-          empty-text="该单没有商品明细"
+          :empty-text="$t('stock.noItemsText')"
         >
           <template #cell-barcode="{ row }">
             <span class="font-mono text-[12px] text-text-2">{{ row.barcode }}</span>
@@ -519,44 +535,44 @@ async function submitCreate() {
         </DataTable>
 
         <div class="flex items-center justify-end gap-6 mt-3 pt-3 border-t border-line">
-          <span class="text-[13px] text-text-2">合计数量 <span class="num font-semibold text-text">{{ qty(detailTotal.qty) }}</span> 件</span>
-          <span class="text-[13px] text-text-2">合计金额 <span class="price text-text">{{ money(detailTotal.amount) }}</span></span>
+          <span class="text-[13px] text-text-2">{{ $t('stock.totalQtyInline', { n: qty(detailTotal.qty) }) }}</span>
+          <span class="text-[13px] text-text-2">{{ $t('stock.totalAmountInline', { amount: money(detailTotal.amount) }) }}</span>
         </div>
       </template>
 
       <template #footer>
-        <AppButton @click="detailVisible = false">关闭</AppButton>
+        <AppButton @click="detailVisible = false">{{ $t('common.close') }}</AppButton>
         <AppButton
           v-if="detailOrder?.status === 'pending'"
           variant="success"
           icon="check"
           @click="confirmReceive(detailOrder), (detailVisible = false)"
         >
-          确认入库
+          {{ $t('stock.confirmReceive') }}
         </AppButton>
       </template>
     </AppDrawer>
 
     <!-- 新建进货单 -->
-    <AppDrawer v-model="createVisible" title="新建进货单" width="720">
+    <AppDrawer v-model="createVisible" :title="$t('stock.newPurchase')" width="720">
       <div class="space-y-3">
         <div class="grid grid-cols-3 gap-3">
-          <FormField label="供应商" required>
+          <FormField :label="$t('stock.supplier')" required>
             <select v-model="form.supplier" class="input w-full">
               <option v-for="s in SUPPLIERS" :key="s" :value="s">{{ s }}</option>
             </select>
           </FormField>
-          <FormField label="进货日期" required>
+          <FormField :label="$t('stock.purchaseDate')" required>
             <input v-model="form.purchaseDate" type="date" class="input w-full" />
           </FormField>
-          <FormField label="备注">
-            <input v-model="form.remark" class="input w-full" placeholder="如：月结供应商" />
+          <FormField :label="$t('common.remark')">
+            <input v-model="form.remark" class="input w-full" :placeholder="$t('stock.supplierRemarkPlaceholder')" />
           </FormField>
         </div>
 
         <div class="flex items-center justify-between">
-          <div class="text-[13.5px] font-semibold">商品明细</div>
-          <AppButton size="sm" icon="plus" @click="addLine">添加一行</AppButton>
+          <div class="text-[13.5px] font-semibold">{{ $t('stock.itemsTitle') }}</div>
+          <AppButton size="sm" icon="plus" @click="addLine">{{ $t('stock.addRow') }}</AppButton>
         </div>
 
         <div class="card" style="overflow: hidden">
@@ -564,19 +580,19 @@ async function submitCreate() {
             <table class="table-flat">
               <thead>
                 <tr>
-                  <th style="width: 240px">商品</th>
-                  <th style="width: 90px" class="text-right">当前库存</th>
-                  <th style="width: 100px" class="text-right">进价</th>
-                  <th style="width: 100px" class="text-right">数量</th>
-                  <th style="width: 100px" class="text-right">金额</th>
-                  <th style="width: 46px" class="text-center">操作</th>
+                  <th style="width: 240px">{{ $t('stock.colProduct') }}</th>
+                  <th style="width: 90px" class="text-right">{{ $t('stock.currentStock') }}</th>
+                  <th style="width: 100px" class="text-right">{{ $t('stock.costPrice') }}</th>
+                  <th style="width: 100px" class="text-right">{{ $t('stock.qty') }}</th>
+                  <th style="width: 100px" class="text-right">{{ $t('stock.subtotal') }}</th>
+                  <th style="width: 46px" class="text-center">{{ $t('common.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(line, i) in lines" :key="i">
                   <td>
                     <select v-model="line.productId" class="input w-full" @change="onPickProduct(line)">
-                      <option value="">请选择商品</option>
+                      <option value="">{{ $t('stock.selectProduct') }}</option>
                       <option v-for="p in products" :key="p.id" :value="p.id">
                         {{ p.name }}（{{ p.barcode }}）
                       </option>
@@ -603,7 +619,7 @@ async function submitCreate() {
                     <span class="price">{{ money(lineAmount(line)) }}</span>
                   </td>
                   <td class="text-center">
-                    <button class="text-text-3 hover:text-danger" title="删除该行" @click="removeLine(i)">
+                    <button class="text-text-3 hover:text-danger" :title="$t('stock.deleteLineTitle')" @click="removeLine(i)">
                       <Icon name="trash" :size="15" />
                     </button>
                   </td>
@@ -613,24 +629,24 @@ async function submitCreate() {
           </div>
         </div>
 
-        <div class="text-xs text-text-3">提示：选择商品后会自动带出商品进价，可按实际到货价修改；数量默认为 10。</div>
+        <div class="text-xs text-text-3">{{ $t('stock.createHint') }}</div>
       </div>
 
       <!-- 抽屉底部：实时汇总 + 提交 -->
       <template #footer>
         <div class="flex items-center gap-4 flex-1 flex-wrap">
           <span class="text-[13px] text-text-2">
-            共 <span class="num font-semibold text-text">{{ createTotal.kinds }}</span> 种商品
+            {{ $t('stock.totalKinds', { n: createTotal.kinds }) }}
           </span>
           <span class="text-[13px] text-text-2">
-            合计 <span class="num font-semibold text-text">{{ qty(createTotal.qty) }}</span> 件
+            {{ $t('stock.totalSummary', { pieces: qty(createTotal.qty) }) }}
           </span>
           <span class="text-[13px] text-text-2">
-            总金额 <span class="price text-primary">{{ money(createTotal.amount) }}</span>
+            {{ $t('stock.totalAmountLabel', { amount: money(createTotal.amount) }) }}
           </span>
         </div>
-        <AppButton @click="createVisible = false">取消</AppButton>
-        <AppButton variant="primary" icon="save" :loading="creating" @click="submitCreate">提交进货单</AppButton>
+        <AppButton @click="createVisible = false">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="save" :loading="creating" @click="submitCreate">{{ $t('stock.submitPurchase') }}</AppButton>
       </template>
     </AppDrawer>
   </PageShell>

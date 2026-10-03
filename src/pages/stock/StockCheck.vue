@@ -18,6 +18,7 @@ import { exportXls } from '@/utils/export'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -30,6 +31,7 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const { isManager, displayName } = useAuth()
+const { t } = useI18n()
 
 const loading = ref(true)
 const stockRows = ref([])
@@ -99,22 +101,22 @@ const stats = computed(() => {
   return { gain, loss, amount, countedCount: counted.value.length, total: rows.value.length }
 })
 
-const columns = [
-  { key: 'barcode', label: '条码', width: 136 },
-  { key: 'name', label: '商品名称', width: 180 },
-  { key: 'unit', label: '单位', width: 58, align: 'center' },
-  { key: 'stock', label: '账面库存', width: 96, align: 'right', format: (r) => qty(r.stock) },
-  { key: 'actual', label: '实盘数量', width: 150, align: 'right' },
-  { key: 'diff', label: '盈亏', width: 104, align: 'right' },
-  { key: 'diffAmount', label: '盈亏金额', width: 108, align: 'right' },
-  { key: 'remark', label: '备注', width: 190 },
-]
+const columns = computed(() => [
+  { key: 'barcode', label: t('stock.barcode'), width: 136 },
+  { key: 'name', label: t('stock.productName'), width: 180 },
+  { key: 'unit', label: t('stock.unit'), width: 58, align: 'center' },
+  { key: 'stock', label: t('stock.bookQty'), width: 96, align: 'right', format: (r) => qty(r.stock) },
+  { key: 'actual', label: t('stock.realQty'), width: 150, align: 'right' },
+  { key: 'diff', label: t('stock.diff'), width: 104, align: 'right' },
+  { key: 'diffAmount', label: t('stock.diffAmount'), width: 108, align: 'right' },
+  { key: 'remark', label: t('common.remark'), width: 190 },
+])
 
 /* ------------------------------- 快捷操作 ------------------------------- */
 /** 一键带入账面数量：账实相符的行不用手填，差异行再单独改 */
 function fillAll() {
   for (const r of rows.value) counts[r.productId] = String(r.stock)
-  toast.info(`已带入 ${rows.value.length} 项账面数量，请修改有差异的行`)
+  toast.info(t('stock.fillAllOk', { n: rows.value.length }))
 }
 
 function clearAll() {
@@ -122,7 +124,7 @@ function clearAll() {
     delete counts[r.productId]
     delete remark[r.productId]
   }
-  toast.info('已清空实盘数量')
+  toast.info(t('stock.clearAllOk'))
 }
 
 function sameAsBook(row) {
@@ -138,19 +140,24 @@ function onExportTemplate() {
     rows.value.map((r) => [r.barcode, r.name, r.unit, qty(r.stock), '', '', '']),
     `库存盘点表（模板 · 盘点人 ${displayName.value} · ${checkTime.value}）`,
   )
-  toast.ok(`已导出空白盘点表（${rows.value.length} 项）`)
+  toast.ok(t('stock.templateExported', { n: rows.value.length }))
 }
 
 async function submit() {
   if (!counted.value.length) {
-    toast.warning('请先录入至少一项实盘数量')
+    toast.warning(t('stock.needCount'))
     return
   }
   const { countedCount, gain, loss, amount } = stats.value
   const okToSubmit = await confirm({
-    title: '提交盘点结果',
-    content: `已盘 ${countedCount} 项，盘盈 ${qty(gain)} 件 / 盘亏 ${qty(loss)} 件，盈亏金额合计 ${money(amount)}。提交后将生成盘点调整记录并修改库存。`,
-    confirmText: '确认提交',
+    title: t('stock.checkSubmitTitle'),
+    content: t('stock.checkSubmitConfirm', {
+      done: countedCount,
+      gain: qty(gain),
+      loss: qty(loss),
+      amount: money(amount),
+    }),
+    confirmText: t('stock.checkSubmitConfirmBtn'),
   })
   if (!okToSubmit) return
 
@@ -184,7 +191,7 @@ async function submit() {
     submitting.value = false
   }
 
-  toast.ok(`已生成 ${items.length} 条盘点调整记录`)
+  toast.ok(t('stock.submitOk', { n: items.length }))
   // 清空实盘输入，模拟「本轮盘点已结束，等待下一轮」
   clearAll()
 }
@@ -193,16 +200,16 @@ async function submit() {
 <template>
   <PageShell>
     <PageHeader
-      title="库存盘点"
-      desc="录入实盘数量，系统自动计算盈亏并生成库存调整记录"
+      :title="$t('stock.checkTitle')"
+      :desc="$t('stock.checkDesc')"
       icon="scale"
     >
       <template #actions>
-        <AppButton v-if="isManager" icon="download" @click="onExportTemplate">导出盘点表</AppButton>
-        <AppButton v-if="isManager" icon="layers" @click="fillAll">一键带入账面数量</AppButton>
-        <AppButton v-if="isManager" icon="trash" @click="clearAll">清空实盘</AppButton>
+        <AppButton v-if="isManager" icon="download" @click="onExportTemplate">{{ $t('stock.exportTemplate') }}</AppButton>
+        <AppButton v-if="isManager" icon="layers" @click="fillAll">{{ $t('stock.fillBook') }}</AppButton>
+        <AppButton v-if="isManager" icon="trash" @click="clearAll">{{ $t('stock.clearReal') }}</AppButton>
         <AppButton v-if="isManager" variant="primary" icon="check" :loading="submitting" @click="submit">
-          提交盘点结果
+          {{ $t('stock.submitCheck') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -211,11 +218,11 @@ async function submit() {
     <div v-if="!isManager" class="card card-pad">
       <div class="empty">
         <Icon name="lock" :size="30" class="text-text-3" />
-        <div class="text-text text-[15px] font-semibold">权限不足</div>
+        <div class="text-text text-[15px] font-semibold">{{ $t('common.noPermission') }}</div>
         <div class="text-xs text-text-3 max-w-[460px]">
-          「库存盘点」会直接修改账面库存，属于店长专属功能。收银员账号可在收银台完成开单与结算。
+          {{ $t('stock.checkPermTip') }}
         </div>
-        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">返回收银台</AppButton>
+        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">{{ $t('stock.backToPos') }}</AppButton>
       </div>
     </div>
 
@@ -226,38 +233,38 @@ async function submit() {
         :style="{ background: 'var(--c-purple-soft)', color: 'var(--c-purple)' }"
       >
         <Icon name="sparkle" :size="14" />
-        <span>支持实盘录入、盈亏自动计算，提交后生成库存调整记录</span>
+        <span>{{ $t('stock.checkTip') }}</span>
       </div>
 
       <!-- 顶部信息条 -->
       <div class="card card-pad">
         <div class="flex items-end flex-wrap gap-3">
           <div class="flex flex-col gap-1">
-            <span class="text-xs text-text-3">盘点人</span>
+            <span class="text-xs text-text-3">{{ $t('stock.checker') }}</span>
             <span class="text-[13.5px] font-medium flex items-center gap-1.5">
               <Icon name="user" :size="14" class="text-text-3" />{{ displayName }}
             </span>
           </div>
           <div class="w-[1px] h-8" :style="{ background: 'var(--c-line)' }" />
           <div class="flex flex-col gap-1">
-            <span class="text-xs text-text-3">盘点时间</span>
+            <span class="text-xs text-text-3">{{ $t('stock.checkTime') }}</span>
             <span class="text-[13.5px] font-medium num flex items-center gap-1.5">
               <Icon name="clock" :size="14" class="text-text-3" />{{ checkTime }}
             </span>
           </div>
           <div class="w-[1px] h-8" :style="{ background: 'var(--c-line)' }" />
-          <FormField label="分类范围" class="w-[160px]">
+          <FormField :label="$t('stock.categoryScope')" class="w-[160px]">
             <select v-model="filter.categoryId" class="input w-full">
-              <option value="">全部品类</option>
+              <option value="">{{ $t('stock.allCategories') }}</option>
               <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </FormField>
-          <FormField label="关键字" class="w-[230px]">
-            <SearchInput v-model="filter.keyword" placeholder="商品名称 / 条码" width="100%" />
+          <FormField :label="$t('common.keyword')" class="w-[230px]">
+            <SearchInput v-model="filter.keyword" :placeholder="$t('stock.searchPlaceholder')" width="100%" />
           </FormField>
           <div class="flex-1" />
           <div class="text-xs text-text-3 pb-2">
-            盘点清单 <span class="num text-text font-medium">{{ rows.length }}</span> 项
+            {{ $t('stock.checkListCount', { n: rows.length }) }}
           </div>
         </div>
       </div>
@@ -270,8 +277,8 @@ async function submit() {
           :loading="loading"
           row-key="productId"
           hover
-          empty-text="没有符合条件的商品"
-          empty-hint="试试切换分类或清空关键字"
+          :empty-text="$t('stock.checkEmptyText')"
+          :empty-hint="$t('stock.checkEmptyHint')"
         >
           <template #cell-barcode="{ row }">
             <span class="font-mono text-[12.5px] text-text-2">{{ row.barcode }}</span>
@@ -294,10 +301,10 @@ async function submit() {
               />
               <button
                 class="badge badge-muted hover:badge-primary shrink-0"
-                title="填入账面库存"
+                :title="$t('stock.fillBookTitle')"
                 @click.stop="sameAsBook(row)"
               >
-                =账面
+                {{ $t('stock.sameAsBook') }}
               </button>
             </div>
           </template>
@@ -339,7 +346,7 @@ async function submit() {
             <input
               v-model="remark[row.productId]"
               class="input w-full"
-              placeholder="差异说明（可选）"
+              :placeholder="$t('stock.remarkPlaceholder')"
             />
           </template>
         </DataTable>
@@ -355,35 +362,25 @@ async function submit() {
       >
         <div class="mx-auto px-3 sm:px-5 py-3 flex items-center gap-4 flex-wrap" style="max-width: 1600px">
           <div class="flex items-center gap-2">
-            <span class="badge badge-primary">已盘 {{ stats.countedCount }} / 共 {{ stats.total }} 项</span>
+            <span class="badge badge-primary">{{ $t('stock.checkedCount', { done: stats.countedCount, total: stats.total }) }}</span>
           </div>
           <div class="text-[13px] flex items-center gap-3 flex-wrap">
-            <span class="text-text-2">
-              盘盈合计
-              <span class="num font-semibold" :style="{ color: 'var(--c-success)' }">{{ qty(stats.gain) }}</span>
-              件
+            <span class="text-text-2" :style="{ color: 'var(--c-success)' }">
+              {{ $t('stock.profitTotal', { n: qty(stats.gain) }) }}
             </span>
-            <span class="text-text-2">
-              盘亏合计
-              <span class="num font-semibold" :style="{ color: 'var(--c-danger)' }">{{ qty(stats.loss) }}</span>
-              件
+            <span class="text-text-2" :style="{ color: 'var(--c-danger)' }">
+              {{ $t('stock.lossTotal', { n: qty(stats.loss) }) }}
             </span>
-            <span class="text-text-2">
-              盈亏金额合计
-              <span
-                class="price"
-                :style="{ color: stats.amount >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }"
-              >
-                {{ money(stats.amount) }}
-              </span>
+            <span class="text-text-2" :style="{ color: stats.amount >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }">
+              {{ $t('stock.diffAmountTotal', { amount: money(stats.amount) }) }}
             </span>
           </div>
           <div class="flex-1" />
           <div class="flex items-center gap-2">
-            <AppButton icon="trash" @click="clearAll">清空实盘</AppButton>
-            <AppButton icon="layers" @click="fillAll">一键带入账面</AppButton>
+            <AppButton icon="trash" @click="clearAll">{{ $t('stock.clearReal') }}</AppButton>
+            <AppButton icon="layers" @click="fillAll">{{ $t('stock.fillBook') }}</AppButton>
             <AppButton variant="primary" icon="check" :loading="submitting" @click="submit">
-              提交盘点结果
+              {{ $t('stock.submitCheck') }}
             </AppButton>
           </div>
         </div>

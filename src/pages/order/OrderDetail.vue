@@ -16,6 +16,7 @@ import { printElement } from '@/utils/export'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -30,15 +31,57 @@ const router = useRouter()
 const { user, isManager } = useAuth()
 const toast = useToast()
 const confirm = useConfirm()
-
-const STORE_NAME = '惠民生活超市'
-const SHOP_ADDR = '幸福路 128 号 · 0755-8888 6666'
+const { t, tl } = useI18n()
 
 const loading = ref(true)
 const detail = ref(null)
 const costMap = ref({})
 const receiptRef = ref(null)
 const printing = ref(false)
+
+/* --------------------- 状态码 / 等级码 → 字典文案 --------------------- */
+const STATUS_KEY = {
+  paid: 'order.statusPaid',
+  unpaid: 'order.statusUnpaid',
+  refunded: 'order.statusRefunded',
+  partial_refund: 'order.statusPartialRefund',
+  void: 'order.statusVoid',
+}
+const LEVEL_KEY = {
+  normal: 'member.levelNormal',
+  silver: 'member.levelSilver',
+  gold: 'member.levelGold',
+  diamond: 'member.levelDiamond',
+}
+/** 订单里的会员只有中文等级名（mock 未提供 level 码），按名称反查字典键 */
+const LEVEL_NAME_KEY = {
+  '普通会员': 'member.levelNormal',
+  '银卡会员': 'member.levelSilver',
+  '金卡会员': 'member.levelGold',
+  '钻石会员': 'member.levelDiamond',
+}
+
+const statusMap = computed(() => {
+  const out = {}
+  for (const [code, cfg] of Object.entries(ORDER_STATUS_STYLE)) {
+    out[code] = { ...cfg, label: STATUS_KEY[code] ? t(STATUS_KEY[code]) : cfg.label }
+  }
+  return out
+})
+
+/** 会员等级：优先按等级码取字典，缺码时按中文名反查，最后回退原值 */
+function levelText(rec) {
+  if (rec?.memberLevel && LEVEL_KEY[rec.memberLevel]) return t(LEVEL_KEY[rec.memberLevel])
+  const key = LEVEL_NAME_KEY[rec?.memberLevelName]
+  return key ? t(key) : tl(rec, 'memberLevelName')
+}
+
+/** 订单类型：按类型码取字典，缺码时回退后端给的中文名 */
+function typeText(rec) {
+  if (rec?.type === 'member') return t('pos.memberOrder')
+  if (rec?.type === 'normal') return t('pos.normalOrder')
+  return rec?.typeName || ''
+}
 
 /* ------------------------------- 加载 ------------------------------- */
 onMounted(async () => {
@@ -72,25 +115,31 @@ const pointsDiscount = computed(() => Number(order.value?.pointsDiscount || 0))
 const finalAmount = computed(() => Number(order.value?.finalAmount || 0))
 const totalQty = computed(() => items.value.reduce((s, it) => s + Number(it.qty || 0), 0))
 
+/* ------------------------------- 小票抬头 ------------------------------- */
+const storeName = computed(() => t('order.receiptStore'))
+const shopAddr = computed(() => t('order.receiptAddress'))
+
 const INFO = computed(() => {
   const o = order.value
   if (!o) return []
   return [
-    { label: '订单号', value: o.orderNo, mono: true },
-    { label: '下单时间', value: `${o.createdAt}（${fromNow(o.createdAt)}）`, mono: true },
-    { label: '结算时间', value: o.settledAt || '未结算', mono: true },
-    { label: '订单类型', value: o.typeName || (o.type === 'member' ? '会员订单' : '普通订单') },
-    { label: '收银员', value: `${o.operatorName || o.cashierName || '—'}${o.operatorId ? `（${o.operatorId}）` : ''}` },
-    { label: '备注', value: o.remark || '无' },
+    { label: t('order.orderNo'), value: o.orderNo, mono: true },
+    { label: t('order.createdAt'), value: `${o.createdAt}（${fromNow(o.createdAt)}）`, mono: true },
+    { label: t('order.settledAt'), value: o.settledAt || t('order.statusUnpaid'), mono: true },
+    { label: t('order.orderType'), value: typeText(o) },
+    { label: t('order.cashier'), value: `${o.operatorName || o.cashierName || '—'}${o.operatorId ? `（${o.operatorId}）` : ''}` },
+    { label: t('common.remark'), value: o.remark || t('common.none') },
   ]
 })
 
 const PAY_ICON = { cash: 'money', wechat: 'phone', alipay: 'qrcode', card: 'card' }
 const PAY_TONE = { cash: 'var(--c-success)', wechat: 'var(--c-accent)', alipay: 'var(--c-info)', card: 'var(--c-purple)' }
-const PAY_LABEL = { cash: '现金', wechat: '微信', alipay: '支付宝', card: '储值卡' }
+/** 支付方式码 → 字典键（与收银台共用 pos.* 文案） */
+const PAY_KEY = { cash: 'pos.cash', wechat: 'pos.wechat', alipay: 'pos.alipay', card: 'pos.storedCard' }
 
 function payLabel(p) {
-  return p.methodName || PAY_LABEL[p.method] || p.method
+  if (PAY_KEY[p.method]) return t(PAY_KEY[p.method])
+  return p.methodName || p.method
 }
 function payIcon(method) {
   return PAY_ICON[method] || 'wallet'
@@ -107,15 +156,15 @@ function margin(row) {
   return percent(((price - Number(cost)) / price) * 100)
 }
 
-const itemColumns = [
-  { key: 'barcode', label: '条码', width: 136 },
-  { key: 'name', label: '商品名称' },
-  { key: 'unit', label: '单位', width: 62, align: 'center' },
-  { key: 'price', label: '单价', width: 96, align: 'right', format: (r) => money(r.price) },
-  { key: 'qty', label: '数量', width: 76, align: 'right', format: (r) => qty(r.qty) },
-  { key: 'subtotal', label: '小计', width: 104, align: 'right', format: (r) => money(r.subtotal) },
-  { key: 'margin', label: '毛利率', width: 84, align: 'right' },
-]
+const itemColumns = computed(() => [
+  { key: 'barcode', label: t('product.barcode'), width: 136 },
+  { key: 'name', label: t('product.name') },
+  { key: 'unit', label: t('common.unit'), width: 62, align: 'center' },
+  { key: 'price', label: t('pos.price'), width: 96, align: 'right', format: (r) => money(r.price) },
+  { key: 'qty', label: t('common.quantity'), width: 76, align: 'right', format: (r) => qty(r.qty) },
+  { key: 'subtotal', label: t('pos.subtotal'), width: 104, align: 'right', format: (r) => money(r.subtotal) },
+  { key: 'margin', label: t('order.profitRate'), width: 84, align: 'right' },
+])
 
 /* ------------------------------- 打印 / 退款 ------------------------------- */
 async function onPrint() {
@@ -135,7 +184,7 @@ const refundForm = reactive({ type: 'full', amount: 0, reason: '' })
 
 function openRefund() {
   if (!isManager.value) {
-    toast.warning('权限不足：退款需由店长操作')
+    toast.warning(t('order.noRefundPermission'))
     return
   }
   refundForm.type = 'full'
@@ -151,16 +200,21 @@ function onRefundTypeChange() {
 async function submitRefund() {
   const amount = refundForm.type === 'full' ? finalAmount.value : Number(refundForm.amount || 0)
   if (amount <= 0 || amount > finalAmount.value) {
-    toast.warning('退款金额需大于 0 且不超过实收金额')
+    toast.warning(t('order.refundAmountInvalid'))
     return
   }
-  const reason = refundForm.reason.trim() || '顾客申请退款'
+  const reason = refundForm.reason.trim() || t('order.refundDefaultReason')
 
   const go = await confirm({
-    title: '确认退款',
-    content: `订单 ${order.value.orderNo}\n退款金额 ${money(amount)}（${refundForm.type === 'full' ? '全额' : '部分'}退款）\n退款原因：${reason}\n\n退款后库存与积分将一并回滚。`,
+    title: t('order.confirmRefund'),
+    content: t('order.refundConfirmContent', {
+      no: order.value.orderNo,
+      amount: money(amount),
+      type: refundForm.type === 'full' ? t('order.refundFullShort') : t('order.refundPartialShort'),
+      reason,
+    }),
     danger: true,
-    confirmText: '确认退款',
+    confirmText: t('order.confirmRefund'),
   })
   if (!go) return
 
@@ -176,7 +230,7 @@ async function submitRefund() {
       type: refundForm.type,
       reason,
       operator: user.value?.name || '',
-      createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+      createdAt: `${new Date().toISOString().slice(0, 10)} ${new Date().toTimeString().slice(0, 8)}`,
     },
   }
   refundVisible.value = false
@@ -211,8 +265,8 @@ function goMember() {
 
     <!-- 订单不存在（例如手动改了 hash 里的 id） -->
     <div v-else-if="!order" class="card card-pad mt-4">
-      <Empty icon="inbox" title="订单不存在" :desc="`未找到订单 ${route.params.id}，可能已被删除或链接有误`">
-        <AppButton variant="primary" icon="arrowLeft" @click="goBack">返回订单列表</AppButton>
+      <Empty icon="inbox" :title="$t('order.detailEmpty')" :desc="$t('order.detailEmptyDesc', { id: route.params.id })">
+        <AppButton variant="primary" icon="arrowLeft" @click="goBack">{{ $t('order.backToList') }}</AppButton>
       </Empty>
     </div>
 
@@ -220,26 +274,26 @@ function goMember() {
       <!-- 头部 -->
       <div class="flex items-start justify-between gap-4 flex-wrap pb-4 mb-4 border-b border-line">
         <div class="flex items-start gap-3 min-w-0">
-          <AppButton icon="arrowLeft" title="返回订单列表" @click="goBack" />
+          <AppButton icon="arrowLeft" :title="$t('order.backToList')" @click="goBack" />
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <h1 class="text-[17px] font-semibold font-mono">{{ order.orderNo }}</h1>
-              <StatusTag :value="order.status" :map="ORDER_STATUS_STYLE" />
+              <StatusTag :value="order.status" :map="statusMap" />
             </div>
             <p class="text-xs text-text-3 mt-1">
-              {{ order.createdAt }} · {{ order.operatorName || order.cashierName }} 开单 · 共 {{ qty(totalQty) }} 件商品
+              {{ $t('order.openedBy', { name: order.operatorName || order.cashierName, pieces: qty(totalQty) }) }}
             </p>
           </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <AppButton icon="print" :loading="printing" @click="onPrint">打印小票</AppButton>
+          <AppButton icon="print" :loading="printing" @click="onPrint">{{ $t('order.printReceipt') }}</AppButton>
           <AppButton
             v-if="order.status === 'paid' || order.status === 'partial_refund'"
             variant="danger"
             icon="undo"
             @click="openRefund"
           >
-            退款
+            {{ $t('order.refund') }}
           </AppButton>
         </div>
       </div>
@@ -249,7 +303,7 @@ function goMember() {
         <div class="space-y-3 min-w-0">
           <!-- 订单信息 -->
           <div class="card">
-            <div class="panel-head"><div class="text-[14px] font-semibold">订单信息</div></div>
+            <div class="panel-head"><div class="text-[14px] font-semibold">{{ $t('order.baseInfo') }}</div></div>
             <div class="p-3">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 <div v-for="f in INFO" :key="f.label" class="flex items-start justify-between gap-3 py-1.5 border-b border-line">
@@ -259,7 +313,7 @@ function goMember() {
 
                 <!-- 会员信息：可直接跳到会员档案 -->
                 <div class="flex items-start justify-between gap-3 py-1.5 border-b border-line">
-                  <span class="text-[12.5px] text-text-3 shrink-0">顾客</span>
+                  <span class="text-[12.5px] text-text-3 shrink-0">{{ $t('order.customer') }}</span>
                   <div v-if="order.type === 'member'" class="text-right min-w-0">
                     <div class="flex items-center gap-1.5 justify-end flex-wrap">
                       <button class="text-[13px] text-primary hover:underline" @click="goMember">{{ order.memberName }}</button>
@@ -268,19 +322,19 @@ function goMember() {
                         class="badge"
                         :class="MEMBER_LEVEL_STYLE[order.memberLevel] || 'badge-muted'"
                       >
-                        {{ order.memberLevelName }}
+                        {{ levelText(order) }}
                       </span>
                     </div>
                     <div class="text-[11.5px] text-text-3 num mt-0.5">
-                      {{ order.memberNo }} · {{ order.memberPhone || '未留手机号' }}
+                      {{ order.memberNo }} · {{ order.memberPhone || $t('order.noPhone') }}
                     </div>
                   </div>
-                  <span v-else class="text-[13px] text-text-3">散客</span>
+                  <span v-else class="text-[13px] text-text-3">{{ $t('order.guest') }}</span>
                 </div>
 
                 <!-- 支付方式明细：混合支付时逐笔展示 -->
                 <div class="sm:col-span-2 py-1.5">
-                  <div class="text-[12.5px] text-text-3 mb-2">支付方式</div>
+                  <div class="text-[12.5px] text-text-3 mb-2">{{ $t('order.payMethod') }}</div>
                   <div class="space-y-1.5">
                     <div
                       v-for="(p, i) in order.payments || []"
@@ -297,7 +351,7 @@ function goMember() {
                       <span class="flex-1 text-[13px]">{{ payLabel(p) }}</span>
                       <span class="price">{{ money(p.amount) }}</span>
                     </div>
-                    <div v-if="!(order.payments || []).length" class="text-[13px] text-text-3">暂无支付记录</div>
+                    <div v-if="!(order.payments || []).length" class="text-[13px] text-text-3">{{ $t('order.noPayments') }}</div>
                   </div>
                 </div>
               </div>
@@ -306,27 +360,27 @@ function goMember() {
 
           <!-- 金额构成 -->
           <div class="card">
-            <div class="panel-head"><div class="text-[14px] font-semibold">金额构成</div></div>
+            <div class="panel-head"><div class="text-[14px] font-semibold">{{ $t('order.amountCompose') }}</div></div>
             <div class="p-3">
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div class="p-3 rounded-md" :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }">
-                  <div class="text-[12px] text-text-3">商品原价合计</div>
+                  <div class="text-[12px] text-text-3">{{ $t('order.grossItemsTotal') }}</div>
                   <div class="price text-[17px] mt-1.5">{{ money(grossAmount) }}</div>
                 </div>
                 <div class="p-3 rounded-md" :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }">
-                  <div class="text-[12px] text-text-3">整单优惠</div>
+                  <div class="text-[12px] text-text-3">{{ $t('pos.wholeDiscount') }}</div>
                   <div class="price text-[17px] mt-1.5" :style="{ color: 'var(--c-danger)' }">-{{ money(discountAmount) }}</div>
                 </div>
                 <div class="p-3 rounded-md" :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }">
-                  <div class="text-[12px] text-text-3">积分抵扣</div>
+                  <div class="text-[12px] text-text-3">{{ $t('pos.pointsDiscount') }}</div>
                   <div class="price text-[17px] mt-1.5" :style="{ color: 'var(--c-purple)' }">-{{ money(pointsDiscount) }}</div>
-                  <div class="text-[11.5px] text-text-3 mt-0.5 num">用掉 {{ pointsUsed }} 积分</div>
+                  <div class="text-[11.5px] text-text-3 mt-0.5 num">{{ $t('order.pointsUsedTip', { points: pointsUsed }) }}</div>
                 </div>
                 <div class="p-3 rounded-md" :style="{ background: 'var(--c-primary-soft)', border: '1px solid var(--c-primary-soft-2)' }">
-                  <div class="text-[12px]" :style="{ color: 'var(--c-primary)' }">实收金额</div>
+                  <div class="text-[12px]" :style="{ color: 'var(--c-primary)' }">{{ $t('order.finalAmount') }}</div>
                   <div class="price text-[24px] mt-1" :style="{ color: 'var(--c-primary)' }">{{ money(finalAmount) }}</div>
                   <div class="text-[11.5px] text-text-3 mt-0.5 num">
-                    {{ order.type === 'member' ? `本单获得 ${order.pointsEarned || 0} 积分` : '散客订单不计积分' }}
+                    {{ order.type === 'member' ? $t('order.earnedTip', { points: order.pointsEarned || 0 }) : $t('order.guestNoPoints') }}
                   </div>
                 </div>
               </div>
@@ -336,10 +390,10 @@ function goMember() {
           <!-- 商品明细 -->
           <div class="card">
             <div class="panel-head">
-              <div class="text-[14px] font-semibold">商品明细</div>
-              <div class="text-[11.5px] text-text-3">共 {{ items.length }} 种 / {{ qty(totalQty) }} 件</div>
+              <div class="text-[14px] font-semibold">{{ $t('order.goodsDetail') }}</div>
+              <div class="text-[11.5px] text-text-3">{{ $t('order.kindsPieces', { kinds: items.length, pieces: qty(totalQty) }) }}</div>
             </div>
-            <DataTable :columns="itemColumns" :list="items" empty-text="该订单没有商品明细">
+            <DataTable :columns="itemColumns" :list="items" :empty-text="$t('order.noItems')">
               <template #cell-name="{ row }">
                 <span class="text-[13.5px]">{{ row.name }}</span>
               </template>
@@ -358,37 +412,37 @@ function goMember() {
               </template>
             </DataTable>
             <div class="flex items-center justify-end gap-6 px-3 py-3 border-t border-line flex-wrap">
-              <span class="text-[12.5px] text-text-3">原价合计 <span class="price text-text">{{ money(grossAmount) }}</span></span>
+              <span class="text-[12.5px] text-text-3">{{ $t('order.grossTotal') }} <span class="price text-text">{{ money(grossAmount) }}</span></span>
               <span class="text-[12.5px] text-text-3">
-                优惠合计 <span class="price" :style="{ color: 'var(--c-danger)' }">-{{ money(discountAmount + pointsDiscount) }}</span>
+                {{ $t('order.discountTotal') }} <span class="price" :style="{ color: 'var(--c-danger)' }">-{{ money(discountAmount + pointsDiscount) }}</span>
               </span>
-              <span class="text-[13.5px] font-semibold">实收 <span class="price" :style="{ color: 'var(--c-primary)' }">{{ money(finalAmount) }}</span></span>
+              <span class="text-[13.5px] font-semibold">{{ $t('order.paid') }} <span class="price" :style="{ color: 'var(--c-primary)' }">{{ money(finalAmount) }}</span></span>
             </div>
           </div>
 
           <!-- 退款记录 -->
           <div v-if="order.refund" class="card">
             <div class="panel-head">
-              <div class="text-[14px] font-semibold">退款记录</div>
-              <StatusTag :label="order.refund.type === 'partial' ? '部分退款' : '全额退款'" tone="badge-danger" />
+              <div class="text-[14px] font-semibold">{{ $t('order.refundRecord') }}</div>
+              <StatusTag :label="order.refund.type === 'partial' ? $t('order.partialRefund') : $t('order.fullRefund')" tone="badge-danger" />
             </div>
             <div class="p-3 grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <div class="text-[12px] text-text-3">退款单号</div>
+                <div class="text-[12px] text-text-3">{{ $t('order.refundNo') }}</div>
                 <div class="font-mono text-[13px] mt-1">{{ order.refund.id }}</div>
               </div>
               <div>
-                <div class="text-[12px] text-text-3">退款金额</div>
+                <div class="text-[12px] text-text-3">{{ $t('order.refundAmount') }}</div>
                 <div class="price text-[15px] mt-1" :style="{ color: 'var(--c-danger)' }">{{ money(order.refund.amount) }}</div>
               </div>
               <div>
-                <div class="text-[12px] text-text-3">操作人 / 时间</div>
+                <div class="text-[12px] text-text-3">{{ $t('order.operatorTime') }}</div>
                 <div class="text-[13px] mt-1">{{ order.refund.operator }}</div>
                 <div class="text-[11.5px] text-text-3 num">{{ order.refund.createdAt }}</div>
               </div>
               <div>
-                <div class="text-[12px] text-text-3">退款原因</div>
-                <div class="text-[13px] mt-1">{{ order.refund.reason || '未填写' }}</div>
+                <div class="text-[12px] text-text-3">{{ $t('order.refundReason') }}</div>
+                <div class="text-[13px] mt-1">{{ order.refund.reason || $t('order.notFilled') }}</div>
               </div>
             </div>
           </div>
@@ -397,8 +451,8 @@ function goMember() {
         <!-- 右栏：小票预览 -->
         <div class="card">
           <div class="panel-head">
-            <div class="text-[14px] font-semibold">小票预览</div>
-            <AppButton size="sm" icon="print" @click="onPrintPreview">打印</AppButton>
+            <div class="text-[14px] font-semibold">{{ $t('pos.receiptTitle') }}</div>
+            <AppButton size="sm" icon="print" @click="onPrintPreview">{{ $t('common.print') }}</AppButton>
           </div>
           <div class="p-3">
             <div
@@ -407,28 +461,28 @@ function goMember() {
               :style="{ width: '80mm', maxWidth: '100%', borderRadius: '4px' }"
             >
               <div class="text-center">
-                <div style="font-size: 15px; font-weight: 700; letter-spacing: 2px">{{ STORE_NAME }}</div>
-                <div style="font-size: 11px">{{ SHOP_ADDR }}</div>
-                <div style="font-size: 12px; margin-top: 2px">销售小票</div>
+                <div style="font-size: 15px; font-weight: 700; letter-spacing: 2px">{{ storeName }}</div>
+                <div style="font-size: 11px">{{ shopAddr }}</div>
+                <div style="font-size: 12px; margin-top: 2px">{{ $t('order.receiptSubtitle') }}</div>
               </div>
 
               <div class="receipt-dash" />
 
-              <div class="flex justify-between"><span>订单号</span><span>{{ order.orderNo }}</span></div>
-              <div class="flex justify-between"><span>下单时间</span><span>{{ order.createdAt }}</span></div>
-              <div class="flex justify-between"><span>收银员</span><span>{{ order.operatorName || order.cashierName }}</span></div>
+              <div class="flex justify-between"><span>{{ $t('order.receiptNo') }}</span><span>{{ order.orderNo }}</span></div>
+              <div class="flex justify-between"><span>{{ $t('order.receiptTime') }}</span><span>{{ order.createdAt }}</span></div>
+              <div class="flex justify-between"><span>{{ $t('order.receiptPos') }}</span><span>{{ order.operatorName || order.cashierName }}</span></div>
               <div class="flex justify-between">
-                <span>顾客</span>
-                <span>{{ order.type === 'member' ? `${order.memberName}（${order.memberLevelName}）` : '散客' }}</span>
+                <span>{{ $t('order.receiptCustomer') }}</span>
+                <span>{{ order.type === 'member' ? `${order.memberName}（${levelText(order)}）` : $t('order.guest') }}</span>
               </div>
 
               <div class="receipt-dash" />
 
               <div class="flex justify-between" style="font-weight: 700">
-                <span style="flex: 1">商品</span>
-                <span style="width: 34px; text-align: right">数量</span>
-                <span style="width: 52px; text-align: right">单价</span>
-                <span style="width: 62px; text-align: right">小计</span>
+                <span style="flex: 1">{{ $t('order.receiptGoods') }}</span>
+                <span style="width: 34px; text-align: right">{{ $t('order.receiptQty') }}</span>
+                <span style="width: 52px; text-align: right">{{ $t('order.receiptPrice') }}</span>
+                <span style="width: 62px; text-align: right">{{ $t('pos.subtotal') }}</span>
               </div>
               <div v-for="(it, i) in items" :key="i" class="flex justify-between" style="padding-top: 3px">
                 <span style="flex: 1; word-break: break-all">{{ it.name }}</span>
@@ -439,19 +493,19 @@ function goMember() {
 
               <div class="receipt-dash" />
 
-              <div class="flex justify-between"><span>件数</span><span>{{ qty(totalQty) }}</span></div>
-              <div class="flex justify-between"><span>原价合计</span><span>{{ money(grossAmount) }}</span></div>
-              <div v-if="discountAmount" class="flex justify-between"><span>整单优惠</span><span>-{{ money(discountAmount) }}</span></div>
+              <div class="flex justify-between"><span>{{ $t('order.items') }}</span><span>{{ qty(totalQty) }}</span></div>
+              <div class="flex justify-between"><span>{{ $t('order.grossTotal') }}</span><span>{{ money(grossAmount) }}</span></div>
+              <div v-if="discountAmount" class="flex justify-between"><span>{{ $t('order.receiptDiscount') }}</span><span>-{{ money(discountAmount) }}</span></div>
               <div v-if="pointsDiscount" class="flex justify-between">
-                <span>积分抵扣（{{ pointsUsed }} 分）</span><span>-{{ money(pointsDiscount) }}</span>
+                <span>{{ $t('order.receiptPointsUsed', { points: pointsUsed }) }}</span><span>-{{ money(pointsDiscount) }}</span>
               </div>
               <div class="flex justify-between" style="font-size: 14px; font-weight: 700; margin-top: 4px">
-                <span>应收合计</span><span>{{ money(finalAmount) }}</span>
+                <span>{{ $t('order.receiptPayable') }}</span><span>{{ money(finalAmount) }}</span>
               </div>
 
               <div class="receipt-dash" />
 
-              <div class="flex justify-between" style="font-weight: 700"><span>支付方式</span><span>金额</span></div>
+              <div class="flex justify-between" style="font-weight: 700"><span>{{ $t('order.payMethod') }}</span><span>{{ $t('order.receiptAmount') }}</span></div>
               <div v-for="(p, i) in order.payments || []" :key="i" class="flex justify-between">
                 <span>{{ payLabel(p) }}</span><span>{{ money(p.amount) }}</span>
               </div>
@@ -459,19 +513,19 @@ function goMember() {
               <div class="receipt-dash" />
 
               <div class="flex justify-between">
-                <span>本单积分</span>
+                <span>{{ $t('order.receiptEarned') }}</span>
                 <span>{{ order.pointsEarned ? `+${order.pointsEarned}` : '0' }}</span>
               </div>
               <div v-if="order.refund" class="flex justify-between">
-                <span>退款</span><span>-{{ money(order.refund.amount) }}</span>
+                <span>{{ $t('order.refund') }}</span><span>-{{ money(order.refund.amount) }}</span>
               </div>
 
               <div class="receipt-dash" />
 
               <div class="text-center" style="font-size: 12px">
-                <div style="font-weight: 700">谢谢光临，欢迎下次惠顾！</div>
-                <div style="font-size: 11px; margin-top: 3px">小票请妥善保管，凭票退换</div>
-                <div style="font-size: 11px">服务热线 0755-8888 6666</div>
+                <div style="font-weight: 700">{{ $t('order.receiptFooter') }}</div>
+                <div style="font-size: 11px; margin-top: 3px">{{ $t('order.receiptKeep') }}</div>
+                <div style="font-size: 11px">{{ $t('order.receiptPhone') }}</div>
               </div>
             </div>
           </div>
@@ -479,16 +533,21 @@ function goMember() {
       </div>
 
       <!-- 退款弹窗 -->
-      <AppModal v-model="refundVisible" title="订单退款" :subtitle="`${order.orderNo} · 实收 ${money(finalAmount)}`" width="560">
+      <AppModal
+        v-model="refundVisible"
+        :title="$t('order.refundTitle')"
+        :subtitle="$t('order.refundSubtitle', { no: order.orderNo, amount: money(finalAmount) })"
+        width="560"
+      >
         <div class="grid grid-cols-2 gap-3">
-          <FormField label="退款类型" required>
+          <FormField :label="$t('order.refundType')" required>
             <select v-model="refundForm.type" class="input" @change="onRefundTypeChange">
-              <option value="full">全额退款</option>
-              <option value="partial">部分退款</option>
+              <option value="full">{{ $t('order.fullRefund') }}</option>
+              <option value="partial">{{ $t('order.partialRefund') }}</option>
             </select>
           </FormField>
 
-          <FormField label="退款金额" required :hint="`最高可退 ${money(finalAmount)}`">
+          <FormField :label="$t('order.refundAmount')" required :hint="$t('order.maxRefund', { amount: money(finalAmount) })">
             <input
               v-model.number="refundForm.amount"
               type="number"
@@ -500,21 +559,21 @@ function goMember() {
             />
           </FormField>
 
-          <FormField label="退款原因" required span="2" hint="将记录到退款单与操作日志中">
-            <input v-model="refundForm.reason" class="input" placeholder="如：商品质量问题 / 重复付款 / 顾客取消" />
+          <FormField :label="$t('order.refundReason')" required span="2" :hint="$t('order.refundReasonHint')">
+            <input v-model="refundForm.reason" class="input" :placeholder="$t('order.refundReasonPlaceholder')" />
           </FormField>
 
           <div class="col-span-2 flex items-start gap-2.5 p-3 rounded-md" :style="{ background: 'var(--c-warning-soft)' }">
             <Icon name="alert" :size="15" :style="{ color: 'var(--c-warning)' }" class="mt-0.5 shrink-0" />
             <div class="text-[12.5px] leading-relaxed" :style="{ color: 'var(--c-warning)' }">
-              退款为不可撤销操作：确认后退回款项、回滚库存，并扣回该单已发放的积分。
+              {{ $t('order.refundWarn') }}
             </div>
           </div>
         </div>
 
         <template #footer="{ close }">
-          <AppButton @click="close">取消</AppButton>
-          <AppButton variant="danger" icon="undo" @click="submitRefund">确认退款</AppButton>
+          <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+          <AppButton variant="danger" icon="undo" @click="submitRefund">{{ $t('order.confirmRefund') }}</AppButton>
         </template>
       </AppModal>
     </template>

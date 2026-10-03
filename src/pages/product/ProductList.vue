@@ -17,6 +17,7 @@ import { useTable } from '@/composables/useTable'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -32,22 +33,23 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const { isManager } = useAuth()
+const { t } = useI18n()
 
-/** 状态徽章映射：在售=绿、停用=灰 */
-const STATUS_STYLE = {
-  active: { label: '在售', class: 'badge-success' },
-  inactive: { label: '停用', class: 'badge-muted' },
-}
+/** 状态徽章映射：在售=绿、停用=灰（文案跟随语言切换） */
+const STATUS_STYLE = computed(() => ({
+  active: { label: t('product.active'), class: 'badge-success' },
+  inactive: { label: t('product.inactive'), class: 'badge-muted' },
+}))
 
 const UNITS = ['斤', '个', '盒', '袋', '瓶', '罐', '箱', '排', '桶', '提', '把', '支', '块', '条', '卷', '板', '只']
 
 /** 全量商品：pageSize: 0 让 mock 后端不分页，一次拿全，便于本地统计与筛选 */
-const t = useTable(productApi.list, {
+const table = useTable(productApi.list, {
   filters: { keyword: '', categoryId: '', status: '', stockState: '' },
   pageSize: 0, // 关键：pageSize 0 = 不分页，拿全量做本地统计/筛选
 })
 // 解构出 ref 与常用方法：脚本与模板里都用裸变量，避免对象内 ref 解包带来的不确定性
-const { list, total, loading, query, refresh, reset: resetTable, fetchAll, patchLocal, removeLocal, unshiftLocal } = t
+const { list, total, loading, query, refresh, reset: resetTable, fetchAll, patchLocal, removeLocal, unshiftLocal } = table
 
 const categories = ref([])
 const allProducts = ref([])
@@ -80,10 +82,10 @@ const kpi = computed(() => {
 })
 
 const kpiCards = computed(() => [
-  { label: '商品总数', value: thousands(kpi.value.total), unit: '种', icon: 'product', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: '全部档案' },
-  { label: '在售数量', value: thousands(kpi.value.active), unit: '种', icon: 'check', color: 'var(--c-success)', bg: 'var(--c-success-soft)', foot: '可正常销售' },
-  { label: '停用数量', value: thousands(kpi.value.inactive), unit: '种', icon: 'power', color: 'var(--c-text-2)', bg: 'var(--c-surface-3)', foot: '已下架/停售' },
-  { label: '库存总金额', value: money(kpi.value.stockAmount), icon: 'wallet', color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', foot: '进价 × 库存' },
+  { label: t('product.totalProducts'), value: thousands(kpi.value.total), unit: t('common.unitKind'), icon: 'product', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)', foot: t('product.footAll') },
+  { label: t('product.activeCount'), value: thousands(kpi.value.active), unit: t('common.unitKind'), icon: 'check', color: 'var(--c-success)', bg: 'var(--c-success-soft)', foot: t('product.footSellable') },
+  { label: t('product.inactiveCount'), value: thousands(kpi.value.inactive), unit: t('common.unitKind'), icon: 'power', color: 'var(--c-text-2)', bg: 'var(--c-surface-3)', foot: t('product.footOffline') },
+  { label: t('product.stockTotalAmount'), value: money(kpi.value.stockAmount), icon: 'wallet', color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', foot: t('product.footCostFormula') },
 ])
 
 /* --------------------------- 库存情况 --------------------------- */
@@ -95,11 +97,11 @@ function stockStateOf(row) {
   return 'normal'
 }
 
-const STOCK_STATE_STYLE = {
-  normal: { label: '有货', tone: 'text-text-2' },
-  low: { label: '预警', tone: 'text-warning' },
-  empty: { label: '售罄', tone: 'text-danger' },
-}
+const STOCK_STATE_STYLE = computed(() => ({
+  normal: { label: t('product.inStock'), tone: 'text-text-2' },
+  low: { label: t('product.lowStock'), tone: 'text-warning' },
+  empty: { label: t('product.outOfStock'), tone: 'text-danger' },
+}))
 
 /** 库存颜色：售罄红、低于阈值橙，其余常规色 */
 function stockColor(row) {
@@ -110,7 +112,7 @@ function stockColor(row) {
 }
 
 const filtered = computed(() => {
-  const { keyword, categoryId, status, stockState } = t.query
+  const { keyword, categoryId, status, stockState } = table.query
   const kw = String(keyword || '').trim().toLowerCase()
   return allProducts.value.filter((p) => {
     if (kw && !String(p.name || '').toLowerCase().includes(kw) && !String(p.barcode || '').includes(kw)) return false
@@ -146,25 +148,25 @@ function onQuery() {
 
 function onReset() {
   page.value = 1
-  t.reset()
+  table.reset()
 }
 
 /* ----------------------------- 表格列 ----------------------------- */
-const columns = [
-  { key: 'image', label: '图片', width: 66, align: 'center' },
-  { key: 'barcode', label: '条码', width: 172 },
-  { key: 'name', label: '商品名称', width: 150 },
-  { key: 'categoryName', label: '分类', width: 100 },
-  { key: 'unit', label: '单位', width: 58, align: 'center' },
-  { key: 'costPrice', label: '进价', width: 84, align: 'right', format: (r) => money(r.costPrice) },
-  { key: 'price', label: '售价', width: 88, align: 'right', format: (r) => money(r.price) },
-  { key: 'memberPrice', label: '会员价', width: 88, align: 'right', format: (r) => money(r.memberPrice) },
-  { key: 'stock', label: '库存', width: 96, align: 'right' },
-  { key: 'stockAmount', label: '库存金额', width: 100, align: 'right', format: (r) => money(Number(r.costPrice || 0) * Number(r.stock || 0)) },
-  { key: 'status', label: '状态', width: 76, align: 'center' },
-  { key: 'updatedAt', label: '更新时间', width: 104, align: 'right', format: (r) => String(r.updatedAt || '').slice(0, 10) },
-  { key: 'action', label: '操作', width: 232, align: 'right' },
-]
+const columns = computed(() => [
+  { key: 'image', label: t('product.image'), width: 66, align: 'center' },
+  { key: 'barcode', label: t('product.barcode'), width: 172 },
+  { key: 'name', label: t('product.name'), width: 150 },
+  { key: 'categoryName', label: t('product.category'), width: 100 },
+  { key: 'unit', label: t('common.unit'), width: 58, align: 'center' },
+  { key: 'costPrice', label: t('product.costPrice'), width: 84, align: 'right', format: (r) => money(r.costPrice) },
+  { key: 'price', label: t('product.price'), width: 88, align: 'right', format: (r) => money(r.price) },
+  { key: 'memberPrice', label: t('product.memberPrice'), width: 88, align: 'right', format: (r) => money(r.memberPrice) },
+  { key: 'stock', label: t('product.stock'), width: 96, align: 'right' },
+  { key: 'stockAmount', label: t('product.stockAmount'), width: 100, align: 'right', format: (r) => money(Number(r.costPrice || 0) * Number(r.stock || 0)) },
+  { key: 'status', label: t('product.status'), width: 76, align: 'center' },
+  { key: 'updatedAt', label: t('common.updatedAt'), width: 104, align: 'right', format: (r) => String(r.updatedAt || '').slice(0, 10) },
+  { key: 'action', label: t('common.actions'), width: 232, align: 'right' },
+])
 
 /* --------------------------- 商品图片 --------------------------- */
 /** 记录加载失败的图片 id，避免死链一直显示破图 */
@@ -202,7 +204,7 @@ async function onExport() {
     money(p.memberPrice, false),
     qty(p.stock),
     money(Number(p.costPrice || 0) * Number(p.stock || 0), false),
-    p.status === 'active' ? '在售' : '停用',
+    p.status === 'active' ? t('product.active') : t('product.inactive'),
     String(p.updatedAt || '').slice(0, 10),
   ])
   exportXls(
@@ -211,16 +213,16 @@ async function onExport() {
     rows,
     '商品档案导出',
   )
-  toast.ok('导出成功，文件已开始下载')
+  toast.ok(t('product.exportOk'))
 }
 
 async function copyBarcode(row) {
   try {
     await navigator.clipboard.writeText(String(row.barcode || ''))
-    toast.ok(`已复制条码 ${row.barcode}`)
+    toast.ok(t('product.barcodeCopied', { code: row.barcode }))
   } catch {
     // 非安全上下文（http 且非 localhost）下 clipboard 不可用，给出兜底提示
-    toast.warning('当前环境不支持自动复制，请手动选中条码')
+    toast.warning(t('product.copyUnsupported'))
   }
 }
 
@@ -230,7 +232,7 @@ function goCreate() {
 
 function goEdit(row) {
   if (!isManager.value) {
-    toast.warning('仅店长可以编辑商品档案')
+    toast.warning(t('product.onlyManagerEdit'))
     return
   }
   router.push({ name: 'product-edit', params: { id: row.id } })
@@ -264,7 +266,7 @@ function genBarcode() {
 
 function openCreate() {
   if (!isManager.value) {
-    toast.warning('仅店长可以新增商品')
+    toast.warning(t('product.onlyManagerCreate'))
     return
   }
   createForm.value = emptyForm()
@@ -281,14 +283,14 @@ function fillBarcode() {
 function validateCreate() {
   const f = createForm.value
   const e = {}
-  if (!String(f.barcode || '').trim()) e.barcode = '条码不能为空'
-  else if (!/^\d{8,13}$/.test(String(f.barcode).trim())) e.barcode = '条码需为 8-13 位数字'
-  if (!String(f.name || '').trim()) e.name = '商品名称不能为空'
-  if (!f.categoryId) e.categoryId = '请选择商品分类'
-  if (f.price === '' || Number(f.price) <= 0) e.price = '售价必须大于 0'
-  else if (f.costPrice !== '' && Number(f.costPrice) > Number(f.price)) e.price = '售价不能低于进价'
-  if (f.costPrice !== '' && Number(f.costPrice) < 0) e.costPrice = '进价不能为负数'
-  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = '会员价不能高于售价'
+  if (!String(f.barcode || '').trim()) e.barcode = t('product.errBarcodeRequired')
+  else if (!/^\d{8,13}$/.test(String(f.barcode).trim())) e.barcode = t('product.errBarcodeFormat')
+  if (!String(f.name || '').trim()) e.name = t('product.errNameRequired')
+  if (!f.categoryId) e.categoryId = t('product.errCategoryRequired')
+  if (f.price === '' || Number(f.price) <= 0) e.price = t('product.errPricePositive')
+  else if (f.costPrice !== '' && Number(f.costPrice) > Number(f.price)) e.price = t('product.errPriceBelowCost')
+  if (f.costPrice !== '' && Number(f.costPrice) < 0) e.costPrice = t('product.errCostNegative')
+  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = t('product.errMemberPrice')
   createErrors.value = e
   return !Object.keys(e).length
 }
@@ -315,7 +317,7 @@ async function submitCreate() {
     .catch(() => null)
 
   // 后端不落库：手工把草稿行并进本地列表，让界面立刻出现新商品
-  t.unshiftLocal({
+  table.unshiftLocal({
     id: `P${Date.now().toString().slice(-6)}`,
     barcode: String(f.barcode).trim(),
     name: String(f.name).trim(),
@@ -333,7 +335,7 @@ async function submitCreate() {
     createdAt: stamp,
     updatedAt: stamp,
   })
-  toast.ok('商品创建成功')
+  toast.ok(t('product.createOk'))
   createVisible.value = false
 }
 
@@ -345,7 +347,7 @@ const priceErrors = ref({})
 
 function openPrice(row) {
   if (!isManager.value) {
-    toast.warning('仅店长可以修改售价')
+    toast.warning(t('product.onlyManagerPrice'))
     return
   }
   priceTarget.value = row
@@ -357,8 +359,8 @@ function openPrice(row) {
 async function submitPrice() {
   const f = priceForm.value
   const e = {}
-  if (f.price === '' || Number(f.price) <= 0) e.price = '售价必须大于 0'
-  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = '会员价不能高于售价'
+  if (f.price === '' || Number(f.price) <= 0) e.price = t('product.errPricePositive')
+  if (f.memberPrice !== '' && Number(f.memberPrice) > Number(f.price)) e.memberPrice = t('product.errMemberPrice')
   priceErrors.value = e
   if (Object.keys(e).length) return
 
@@ -366,65 +368,65 @@ async function submitPrice() {
   await productApi
     .update(row.id, { price: Number(f.price), memberPrice: Number(f.memberPrice || f.price) })
     .catch(() => null)
-  t.patchLocal(row.id, {
+  table.patchLocal(row.id, {
     price: Number(f.price),
     memberPrice: Number(f.memberPrice || f.price),
     updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
   })
-  toast.ok('售价已更新')
+  toast.ok(t('product.priceOk'))
   priceVisible.value = false
 }
 
 /* --------------------------- 停用 / 启用 --------------------------- */
 async function toggleStatus(row) {
   if (!isManager.value) {
-    toast.warning('仅店长可以停用或启用商品')
+    toast.warning(t('product.onlyManagerStatus'))
     return
   }
   const toInactive = row.status === 'active'
   const okToGo = await confirm({
-    title: toInactive ? '停用商品' : '启用商品',
+    title: toInactive ? t('product.disableTitle') : t('product.enableTitle'),
     content: toInactive
-      ? `停用「${row.name}」后收银台将无法扫码销售，历史订单不受影响。`
-      : `启用「${row.name}」后可在收银台正常销售。`,
+      ? t('product.disableConfirm', { name: row.name })
+      : t('product.enableConfirm', { name: row.name }),
     danger: toInactive,
-    confirmText: toInactive ? '停用' : '启用',
+    confirmText: toInactive ? t('common.disable') : t('common.enable'),
   })
   if (!okToGo) return
 
   if (toInactive) await productApi.disable(row.id).catch(() => null)
   else await productApi.enable(row.id).catch(() => null)
 
-  t.patchLocal(row.id, { status: toInactive ? 'inactive' : 'active' })
-  toast.ok(toInactive ? '商品已停用' : '商品已启用')
+  table.patchLocal(row.id, { status: toInactive ? 'inactive' : 'active' })
+  toast.ok(toInactive ? t('product.disableOk') : t('product.enableOk'))
 }
 
 /* ------------------------------ 删除 ------------------------------ */
 async function removeRow(row) {
   if (!isManager.value) {
-    toast.warning('仅店长可以删除商品')
+    toast.warning(t('product.onlyManagerDelete'))
     return
   }
   const okToGo = await confirm({
-    title: '删除商品',
-    content: `确认删除「${row.name}」？删除后该商品的库存与销售记录将一并清理，业务上更推荐「停用」。`,
+    title: t('product.deleteTitle'),
+    content: t('product.deleteConfirm', { name: row.name }),
     danger: true,
-    confirmText: '删除',
+    confirmText: t('common.delete'),
   })
   if (!okToGo) return
 
   await productApi.remove(row.id).catch(() => null)
-  t.removeLocal(row.id)
-  toast.ok('商品已删除')
+  table.removeLocal(row.id)
+  toast.ok(t('product.deleteOk'))
 }
 </script>
 
 <template>
   <PageShell>
-    <PageHeader title="商品档案" desc="维护商品基础信息、售价与库存预警，支撑收银台扫码销售" icon="product">
+    <PageHeader :title="$t('product.title')" :desc="$t('product.desc')" icon="product">
       <template #actions>
-        <AppButton icon="download" @click="onExport">导出商品</AppButton>
-        <AppButton v-if="isManager" variant="primary" icon="plus" @click="openCreate">新增商品</AppButton>
+        <AppButton icon="download" @click="onExport">{{ $t('product.exportProducts') }}</AppButton>
+        <AppButton v-if="isManager" variant="primary" icon="plus" @click="openCreate">{{ $t('product.newProduct') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -432,8 +434,7 @@ async function removeRow(row) {
     <div v-if="!isManager" class="card card-pad mt-3 flex items-start gap-2.5">
       <Icon name="lock" :size="16" :style="{ color: 'var(--c-warning)' }" />
       <div class="text-[12.5px] text-text-2">
-        <span class="font-medium text-text">权限不足</span>：商品档案为店长专属功能，当前账号（收银员）只能查看，
-        新增 / 改价 / 停用 / 删除按钮均不可用。
+        <span class="font-medium text-text">{{ $t('common.noPermission') }}</span>：{{ $t('product.permTipList') }}
       </div>
     </div>
 
@@ -459,33 +460,33 @@ async function removeRow(row) {
     <!-- 筛选栏 -->
     <div class="card card-pad mt-3">
       <div class="flex items-end gap-3 flex-wrap">
-        <FormField label="关键字">
-          <SearchInput v-model="query.keyword" placeholder="商品名称 / 条码" width="220px" @enter="onQuery" />
+        <FormField :label="$t('common.keyword')">
+          <SearchInput v-model="query.keyword" :placeholder="$t('product.searchPlaceholder')" width="220px" @enter="onQuery" />
         </FormField>
-        <FormField label="分类">
+        <FormField :label="$t('product.category')">
           <select v-model="query.categoryId" class="input" style="width: 150px">
-            <option value="">全部分类</option>
+            <option value="">{{ $t('product.allCategories') }}</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </FormField>
-        <FormField label="状态">
+        <FormField :label="$t('common.status')">
           <select v-model="query.status" class="input" style="width: 120px">
-            <option value="">全部</option>
-            <option value="active">在售</option>
-            <option value="inactive">停用</option>
+            <option value="">{{ $t('common.all') }}</option>
+            <option value="active">{{ $t('product.active') }}</option>
+            <option value="inactive">{{ $t('product.inactive') }}</option>
           </select>
         </FormField>
-        <FormField label="库存情况">
+        <FormField :label="$t('product.stockState')">
           <select v-model="query.stockState" class="input" style="width: 120px">
-            <option value="">全部</option>
-            <option value="normal">有货</option>
-            <option value="low">预警</option>
-            <option value="empty">售罄</option>
+            <option value="">{{ $t('common.all') }}</option>
+            <option value="normal">{{ $t('product.inStock') }}</option>
+            <option value="low">{{ $t('product.lowStock') }}</option>
+            <option value="empty">{{ $t('product.outOfStock') }}</option>
           </select>
         </FormField>
         <div class="flex items-center gap-2">
-          <AppButton variant="primary" icon="search" @click="onQuery">查询</AppButton>
-          <AppButton icon="refresh" @click="onReset">重置</AppButton>
+          <AppButton variant="primary" icon="search" @click="onQuery">{{ $t('common.search') }}</AppButton>
+          <AppButton icon="refresh" @click="onReset">{{ $t('common.reset') }}</AppButton>
         </div>
       </div>
     </div>
@@ -494,9 +495,9 @@ async function removeRow(row) {
     <div class="card mt-3">
       <div class="panel-head">
         <div>
-          <div class="text-[14px] font-semibold">商品列表</div>
+          <div class="text-[14px] font-semibold">{{ $t('product.listTitle') }}</div>
           <div class="text-[11.5px] text-text-3 mt-0.5">
-            共 {{ filtered.length }} 条 · 库存低于预警阈值显示橙色，售罄显示红色
+            {{ $t('product.totalRows', { n: filtered.length }) }} · {{ $t('stock.lowStockTip') }}
           </div>
         </div>
         <AppButton size="sm" icon="refresh" :loading="loading" @click="refresh()" />
@@ -506,14 +507,14 @@ async function removeRow(row) {
         :columns="columns"
         :list="pagedRows"
         :loading="loading"
-        empty-text="没有符合条件的商品"
-        empty-hint="试试清空筛选条件，或调整关键字"
+        :empty-text="$t('product.emptyText')"
+        :empty-hint="$t('product.emptyHint')"
       >
         <template #cell-image="{ row }">
           <button
             class="block mx-auto rounded-md overflow-hidden shrink-0"
             :style="{ width: '40px', height: '40px', border: '1px solid var(--c-line)', background: 'var(--c-surface-2)' }"
-            :title="`查看「${row.name}」图片`"
+            :title="$t('product.viewImage', { name: row.name })"
             @click.stop="previewImage(row)"
           >
             <img
@@ -533,7 +534,7 @@ async function removeRow(row) {
         <template #cell-barcode="{ row }">
           <span class="flex items-center gap-1.5">
             <span class="font-mono text-[12.5px]">{{ row.barcode }}</span>
-            <button class="text-text-3 hover:text-primary" title="复制条码" @click.stop="copyBarcode(row)">
+            <button class="text-text-3 hover:text-primary" :title="$t('product.copyBarcode')" @click.stop="copyBarcode(row)">
               <Icon name="copy" :size="13" />
             </button>
           </span>
@@ -570,13 +571,13 @@ async function removeRow(row) {
 
         <template #cell-action="{ row }">
           <div class="flex items-center justify-end gap-1">
-            <AppButton size="sm" variant="ghost" @click.stop="goEdit(row)">编辑</AppButton>
-            <AppButton size="sm" variant="ghost" @click.stop="openPrice(row)">改售价</AppButton>
+            <AppButton size="sm" variant="ghost" @click.stop="goEdit(row)">{{ $t('common.edit') }}</AppButton>
+            <AppButton size="sm" variant="ghost" @click.stop="openPrice(row)">{{ $t('product.changePrice') }}</AppButton>
             <AppButton size="sm" variant="ghost" @click.stop="toggleStatus(row)">
-              {{ row.status === 'active' ? '停用' : '启用' }}
+              {{ row.status === 'active' ? $t('common.disable') : $t('common.enable') }}
             </AppButton>
             <AppButton v-if="isManager" size="sm" variant="ghost" @click.stop="removeRow(row)">
-              <span :style="{ color: 'var(--c-danger)' }">删除</span>
+              <span :style="{ color: 'var(--c-danger)' }">{{ $t('common.delete') }}</span>
             </AppButton>
           </div>
         </template>
@@ -594,43 +595,43 @@ async function removeRow(row) {
     </div>
 
     <!-- 新增商品 -->
-    <AppModal v-model="createVisible" title="新增商品" subtitle="带 * 为必填；条码支持扫码枪输入" :width="640">
+    <AppModal v-model="createVisible" :title="$t('product.newProduct')" :subtitle="$t('product.createSubtitle')" :width="640">
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="条码" required :error="createErrors.barcode" span="2">
+        <FormField :label="$t('product.barcode')" required :error="createErrors.barcode" span="2">
           <div class="flex items-center gap-2">
             <input
               v-model="createForm.barcode"
               class="input flex-1 font-mono"
               :class="createErrors.barcode && 'is-error'"
-              placeholder="扫码枪扫描或手动输入（8-13 位数字）"
+              :placeholder="$t('product.barcodePlaceholderFull')"
               @keyup.enter="submitCreate"
             />
-            <AppButton icon="barcode" @click="fillBarcode">生成条码</AppButton>
+            <AppButton icon="barcode" @click="fillBarcode">{{ $t('product.generateBarcode') }}</AppButton>
           </div>
         </FormField>
 
-        <FormField label="商品名称" required :error="createErrors.name" span="2">
-          <input v-model="createForm.name" class="input" :class="createErrors.name && 'is-error'" placeholder="如：红富士苹果" />
+        <FormField :label="$t('product.name')" required :error="createErrors.name" span="2">
+          <input v-model="createForm.name" class="input" :class="createErrors.name && 'is-error'" :placeholder="$t('product.namePlaceholder')" />
         </FormField>
 
-        <FormField label="分类" required :error="createErrors.categoryId">
+        <FormField :label="$t('product.category')" required :error="createErrors.categoryId">
           <select v-model="createForm.categoryId" class="input" :class="createErrors.categoryId && 'is-error'">
-            <option value="">请选择分类</option>
+            <option value="">{{ $t('product.selectCategory') }}</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </FormField>
 
-        <FormField label="单位">
+        <FormField :label="$t('common.unit')">
           <select v-model="createForm.unit" class="input">
             <option v-for="u in UNITS" :key="u" :value="u">{{ u }}</option>
           </select>
         </FormField>
 
-        <FormField label="进价" :error="createErrors.costPrice" hint="元 / 单位">
+        <FormField :label="$t('product.costPrice')" :error="createErrors.costPrice" :hint="$t('product.unitCost')">
           <input v-model="createForm.costPrice" type="number" min="0" step="0.01" class="input num" placeholder="0.00" />
         </FormField>
 
-        <FormField label="售价" required :error="createErrors.price" hint="元 / 单位">
+        <FormField :label="$t('product.price')" required :error="createErrors.price" :hint="$t('product.unitCost')">
           <input
             v-model="createForm.price"
             type="number"
@@ -642,29 +643,29 @@ async function removeRow(row) {
           />
         </FormField>
 
-        <FormField label="会员价" :error="createErrors.memberPrice" hint="需 ≤ 售价">
-          <input v-model="createForm.memberPrice" type="number" min="0" step="0.01" class="input num" placeholder="留空则同售价" />
+        <FormField :label="$t('product.memberPrice')" :error="createErrors.memberPrice" :hint="$t('product.memberPriceOnlyHint')">
+          <input v-model="createForm.memberPrice" type="number" min="0" step="0.01" class="input num" :placeholder="$t('product.memberPricePlaceholder')" />
         </FormField>
 
-        <FormField label="预警阈值" hint="库存低于该值触发预警">
+        <FormField :label="$t('product.warnThreshold')" :hint="$t('product.warnThresholdHint')">
           <input v-model="createForm.warnThreshold" type="number" min="0" class="input num" />
         </FormField>
 
-        <FormField label="备注" span="2">
-          <textarea v-model="createForm.remark" rows="2" class="w-full" placeholder="选填，如供货要求、陈列位置" />
+        <FormField :label="$t('common.remark')" span="2">
+          <textarea v-model="createForm.remark" rows="2" class="w-full" :placeholder="$t('product.remarkPlaceholder')" />
         </FormField>
       </div>
 
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="save" @click="submitCreate">保存</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="save" @click="submitCreate">{{ $t('common.save') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 快速改价 -->
-    <AppModal v-model="priceVisible" title="改售价" :subtitle="priceTarget?.name" :width="460">
+    <AppModal v-model="priceVisible" :title="$t('product.changePriceTitle')" :subtitle="priceTarget?.name" :width="460">
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="售价" required :error="priceErrors.price">
+        <FormField :label="$t('product.price')" required :error="priceErrors.price">
           <input
             v-model="priceForm.price"
             type="number"
@@ -675,19 +676,19 @@ async function removeRow(row) {
             @keyup.enter="submitPrice"
           />
         </FormField>
-        <FormField label="会员价" :error="priceErrors.memberPrice" hint="留空则同售价">
+        <FormField :label="$t('product.memberPrice')" :error="priceErrors.memberPrice" :hint="$t('product.memberPricePlaceholder')">
           <input v-model="priceForm.memberPrice" type="number" min="0" step="0.01" class="input num" />
         </FormField>
       </div>
 
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="check" @click="submitPrice">确认修改</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="check" @click="submitPrice">{{ $t('product.confirmChange') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 商品图片放大预览 -->
-    <AppModal v-model="imagePreview.visible" :title="imagePreview.name" subtitle="商品图片" :width="420">
+    <AppModal v-model="imagePreview.visible" :title="imagePreview.name" :subtitle="$t('product.imageTitle')" :width="420">
       <div class="flex items-center justify-center rounded-lg p-3"
         :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }">
         <img
@@ -698,25 +699,25 @@ async function removeRow(row) {
         />
         <div v-else class="empty">
           <Icon name="product" :size="34" />
-          <div>该商品尚未上传图片</div>
+          <div>{{ $t('product.noImage') }}</div>
         </div>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2 text-[12.5px]">
         <div class="flex justify-between px-2 py-1.5 rounded" :style="{ background: 'var(--c-surface-2)' }">
-          <span class="text-text-3">条码</span><span class="font-mono">{{ imagePreview.barcode }}</span>
+          <span class="text-text-3">{{ $t('product.barcode') }}</span><span class="font-mono">{{ imagePreview.barcode }}</span>
         </div>
         <div class="flex justify-between px-2 py-1.5 rounded" :style="{ background: 'var(--c-surface-2)' }">
-          <span class="text-text-3">售价</span><span class="price">{{ money(imagePreview.price) }}</span>
+          <span class="text-text-3">{{ $t('product.price') }}</span><span class="price">{{ money(imagePreview.price) }}</span>
         </div>
       </div>
       <template #footer="{ close }">
-        <AppButton variant="default" @click="close">关闭</AppButton>
+        <AppButton variant="default" @click="close">{{ $t('common.close') }}</AppButton>
         <AppButton
           variant="primary"
           icon="edit"
           @click="close(); router.push({ name: 'product-edit', params: { id: imagePreview.id } })"
         >
-          去修改图片
+          {{ $t('product.editImage') }}
         </AppButton>
       </template>
     </AppModal>

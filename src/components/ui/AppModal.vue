@@ -77,7 +77,7 @@ onBeforeUnmount(() => {
               <h3 class="text-[15px] font-semibold truncate">{{ title }}</h3>
               <p v-if="subtitle" class="text-xs text-text-3 mt-0.5">{{ subtitle }}</p>
             </div>
-            <button class="btn btn-ghost btn-sm -mr-2" title="关闭" @click="close">
+            <button class="btn btn-ghost btn-sm -mr-2" :title="$t('common.close')" @click="close">
               <Icon name="close" :size="16" />
             </button>
           </div>

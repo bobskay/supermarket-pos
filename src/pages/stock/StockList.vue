@@ -16,6 +16,7 @@ import { exportXls } from '@/utils/export'
 import { useTable } from '@/composables/useTable'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -31,38 +32,48 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { isManager, displayName } = useAuth()
+const { t, tl } = useI18n()
 
 /* --------------------------- 状态字典（主题色统一走 badge-*） --------------------------- */
-const STOCK_STATE_LABEL = { normal: '正常', low: '库存不足', empty: '已售罄' }
+/** 状态码 → 字典键；找不到码时回退到后端给的中文 name */
+const STATE_KEY = { normal: 'stock.normal', low: 'stock.low', empty: 'stock.empty' }
 const STOCK_STATE_TEXT = { normal: 'var(--c-success)', low: 'var(--c-warning)', empty: 'var(--c-danger)' }
-/** 继承 format.js 的配色表，只补一个中文名给 StatusTag 用 */
-const STOCK_STATE_MAP = Object.fromEntries(
-  Object.entries(STOCK_STATE_STYLE).map(([k, cls]) => [k, { label: STOCK_STATE_LABEL[k], class: cls }]),
+/** 继承 format.js 的配色表，标签文案按当前语言取词 */
+const STOCK_STATE_MAP = computed(() =>
+  Object.fromEntries(
+    Object.entries(STOCK_STATE_STYLE).map(([k, cls]) => [k, { label: stateText(k), class: cls }]),
+  ),
 )
 
-const ADJUST_TYPES = [
-  { value: 'loss', label: '损耗', hint: '生鲜腐坏 / 自然减重' },
-  { value: 'damage', label: '破损', hint: '包装破损 / 搬运损坏' },
-  { value: 'check', label: '盘盈', hint: '盘点差异修正' },
-  { value: 'other', label: '其他', hint: '其他原因的手工调整' },
-]
+/** 按状态码取文案，未知码回退到数据里的 name 字段 */
+function stateText(state, row) {
+  if (STATE_KEY[state]) return t(STATE_KEY[state])
+  return row ? tl(row, 'stockStateName', t('stock.normal')) : t('stock.normal')
+}
+
+const ADJUST_TYPES = computed(() => [
+  { value: 'loss', label: t('stock.typeLoss'), hint: t('stock.typeLossHint') },
+  { value: 'damage', label: t('stock.typeDamage'), hint: t('stock.typeDamageHint') },
+  { value: 'check', label: t('stock.typeCheck'), hint: t('stock.typeCheckHint') },
+  { value: 'other', label: t('stock.typeOther'), hint: t('stock.typeOtherHint') },
+])
 const COMMON_REASONS = ['生鲜腐坏报损', '过期销毁', '搬运破损', '盘点差异修正', '顾客退换折损', '内部领用']
 
-const STOCK_STATE_OPTIONS = [
-  { value: '', label: '全部状态' },
-  { value: 'normal', label: '正常' },
-  { value: 'low', label: '库存不足' },
-  { value: 'empty', label: '已售罄' },
-]
+const STOCK_STATE_OPTIONS = computed(() => [
+  { value: '', label: t('stock.allStates') },
+  { value: 'normal', label: t('stock.normal') },
+  { value: 'low', label: t('stock.low') },
+  { value: 'empty', label: t('stock.empty') },
+])
 /** 排序值统一编码成 key|order，交给 onSort 解开，避免页面里散落排序分支 */
-const SORT_OPTIONS = [
-  { value: 'stock|asc', label: '库存升序（缺货优先）' },
-  { value: 'stock|desc', label: '库存降序（备货最多优先）' },
-  { value: 'stockAmount|desc', label: '库存金额降序' },
-]
+const SORT_OPTIONS = computed(() => [
+  { value: 'stock|asc', label: t('stock.sortStockAsc') },
+  { value: 'stock|desc', label: t('stock.sortStockDesc') },
+  { value: 'stockAmount|desc', label: t('stock.sortAmountDesc') },
+])
 
 /* ------------------------------- 列表数据编排 ------------------------------- */
-const t = useTable(stockApi.list, {
+const table = useTable(stockApi.list, {
   filters: {
     keyword: '',
     categoryId: '',
@@ -75,7 +86,7 @@ const t = useTable(stockApi.list, {
   sortOrder: 'asc',
 })
 // 解构出 ref 与常用方法：模板里直接写 list / total / loading，避免对象内 ref 解包带来的不确定性
-const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = t
+const { list, total, loading, errorMsg, page, size, sort, query, isEmpty, reload, refresh, setFilter, reset, onPageChange, onSort, patchLocal, removeLocal, unshiftLocal, fetchAll, setList } = table
 
 
 const categories = ref([])
@@ -88,62 +99,62 @@ const kpis = computed(() => {
   return [
     {
       key: 'sku',
-      label: '在售 SKU 数',
+      label: t('stock.skuCount'),
       value: thousands(s.skuCount || 0),
-      unit: '个',
+      unit: t('common.unitItem'),
       icon: 'product',
       color: 'var(--c-primary)',
       bg: 'var(--c-primary-soft)',
-      foot: '库存档案中的商品总数',
+      foot: t('stock.footSkuTotal'),
     },
     {
       key: 'qty',
-      label: '库存总件数',
+      label: t('stock.totalQty'),
       value: thousands(s.totalQty || 0),
-      unit: '件',
+      unit: t('common.unitPiece'),
       icon: 'layers',
       color: 'var(--c-accent)',
       bg: 'var(--c-accent-soft)',
-      foot: '所有商品库存之和',
+      foot: t('stock.footQtyTotal'),
     },
     {
       key: 'amount',
-      label: '库存总金额',
+      label: t('stock.totalAmount'),
       value: money(s.totalAmount || 0),
       icon: 'wallet',
       color: 'var(--c-purple)',
       bg: 'var(--c-purple-soft)',
-      foot: '按进价计算的在库成本',
+      foot: t('stock.footAmountCost'),
     },
     {
       key: 'warn',
-      label: '预警商品数',
+      label: t('stock.warningCount'),
       value: thousands((s.lowCount || 0) + (s.emptyCount || 0)),
-      unit: '个',
+      unit: t('common.unitItem'),
       icon: 'alert',
       color: 'var(--c-warning)',
       bg: 'var(--c-warning-soft)',
       /** 期望文案：库存不足 12 · 已售罄 3（点击只看库存不足） */
-      foot: `库存不足 ${s.lowCount || 0} · 已售罄 ${s.emptyCount || 0}`,
+      foot: t('stock.footWarn', { low: s.lowCount || 0, empty: s.emptyCount || 0 }),
       clickable: true,
     },
   ]
 })
 
-const columns = [
-  { key: 'barcode', label: '条码', width: 138 },
-  { key: 'name', label: '商品名称', width: 170 },
-  { key: 'categoryName', label: '分类', width: 100 },
-  { key: 'unit', label: '单位', width: 56, align: 'center' },
-  { key: 'costPrice', label: '进价', width: 74, align: 'right', format: (r) => money(r.costPrice) },
-  { key: 'price', label: '售价', width: 74, align: 'right', format: (r) => money(r.price) },
-  { key: 'stock', label: '当前库存', width: 116, align: 'right' },
-  { key: 'warnThreshold', label: '预警阈值', width: 88, align: 'right', format: (r) => qty(r.warnThreshold) },
-  { key: 'stockAmount', label: '库存金额', width: 100, align: 'right' },
-  { key: 'stockState', label: '状态', width: 92, align: 'center' },
-  { key: 'updatedAt', label: '更新时间', width: 148 },
-  { key: 'action', label: '操作', width: 96, align: 'center' },
-]
+const columns = computed(() => [
+  { key: 'barcode', label: t('stock.barcode'), width: 138 },
+  { key: 'name', label: t('stock.productName'), width: 170 },
+  { key: 'categoryName', label: t('stock.category'), width: 100 },
+  { key: 'unit', label: t('stock.unit'), width: 56, align: 'center' },
+  { key: 'costPrice', label: t('stock.costPrice'), width: 74, align: 'right', format: (r) => money(r.costPrice) },
+  { key: 'price', label: t('stock.price'), width: 74, align: 'right', format: (r) => money(r.price) },
+  { key: 'stock', label: t('stock.stock'), width: 116, align: 'right' },
+  { key: 'warnThreshold', label: t('stock.warnThreshold'), width: 88, align: 'right', format: (r) => qty(r.warnThreshold) },
+  { key: 'stockAmount', label: t('stock.stockAmount'), width: 100, align: 'right' },
+  { key: 'stockState', label: t('stock.stockState'), width: 92, align: 'center' },
+  { key: 'updatedAt', label: t('common.updatedAt'), width: 148 },
+  { key: 'action', label: t('common.actions'), width: 96, align: 'center' },
+])
 
 async function loadSummary() {
   summaryLoading.value = true
@@ -208,11 +219,11 @@ async function onExport() {
       qty(r.stock),
       qty(r.warnThreshold),
       Number(r.stockAmount || 0).toFixed(2),
-      STOCK_STATE_LABEL[r.stockState] || r.stockStateName || '正常',
+      stateText(r.stockState, r),
     ]),
     `实时库存盘点表（共 ${list.length} 个 SKU）`,
   )
-  toast.ok(`已导出 ${list.length} 条库存记录`)
+  toast.ok(t('stock.recordsExported', { n: list.length }))
 }
 
 /* ------------------------------- 库存调整 ------------------------------- */
@@ -228,7 +239,7 @@ const adjustAfter = computed(() => {
 })
 
 const adjustTypeHint = computed(
-  () => ADJUST_TYPES.find((x) => x.value === adjustForm.type)?.hint || '',
+  () => ADJUST_TYPES.value.find((x) => x.value === adjustForm.type)?.hint || '',
 )
 
 /** 调整后库存对应的状态文案（表格/预览共用） */
@@ -258,11 +269,11 @@ function step(delta) {
 async function submitAdjust() {
   const delta = Number(adjustForm.changeQty)
   if (!delta) {
-    toast.warning('请输入非 0 的调整数量')
+    toast.warning(t('stock.needQtyNonZero'))
     return
   }
   if (!adjustForm.reason.trim()) {
-    toast.warning('请填写调整原因，便于后续追溯')
+    toast.warning(t('stock.needReason'))
     return
   }
   adjusting.value = true
@@ -275,7 +286,7 @@ async function submitAdjust() {
       reason: adjustForm.reason.trim(),
       operator: displayName.value,
     })
-    toast.ok('库存调整成功，已记录日志')
+    toast.ok(t('stock.adjustOk'))
     const after = adjustAfter.value
     // 本地合并：库存 / 状态 / 金额一起改，界面立刻能看到结果
     patchLocal(
@@ -309,11 +320,11 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
 
 <template>
   <PageShell>
-    <PageHeader title="实时库存" desc="库存水位、预警与手工调整，所有变动都会写入库存流水" icon="stock">
+    <PageHeader :title="$t('stock.title')" :desc="$t('stock.listDesc')" icon="stock">
       <template #actions>
-        <AppButton v-if="isManager" icon="download" @click="onExport">导出盘点表</AppButton>
+        <AppButton v-if="isManager" icon="download" @click="onExport">{{ $t('stock.exportCheck') }}</AppButton>
         <AppButton v-if="isManager" variant="primary" icon="truck" @click="router.push({ name: 'purchase' })">
-          采购入库
+          {{ $t('stock.goPurchase') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -322,11 +333,11 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
     <div v-if="!isManager" class="card card-pad">
       <div class="empty">
         <Icon name="lock" :size="30" class="text-text-3" />
-        <div class="text-text text-[15px] font-semibold">权限不足</div>
+        <div class="text-text text-[15px] font-semibold">{{ $t('common.noPermission') }}</div>
         <div class="text-xs text-text-3 max-w-[420px]">
-          「实时库存」为店长专属功能，收银员账号无法查看库存成本与调整入口。如需操作请联系店长。
+          {{ $t('stock.permTip') }}
         </div>
-        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">返回收银台</AppButton>
+        <AppButton class="mt-1" icon="arrowLeft" @click="router.push({ name: 'pos' })">{{ $t('stock.backToPos') }}</AppButton>
       </div>
     </div>
 
@@ -363,7 +374,7 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
             </div>
             <div class="kpi-foot">
               <span>{{ k.foot }}</span>
-              <span v-if="k.clickable" class="text-warning">· 点击筛选</span>
+              <span v-if="k.clickable" class="text-warning">{{ $t('stock.clickFilter') }}</span>
             </div>
           </component>
         </template>
@@ -372,38 +383,38 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
       <!-- 筛选栏 -->
       <div class="card card-pad mt-3">
         <div class="flex items-end flex-wrap gap-3">
-          <FormField label="关键字" class="w-[230px]">
+          <FormField :label="$t('common.keyword')" class="w-[230px]">
             <SearchInput
               v-model="query.keyword"
-              placeholder="商品名称 / 条码"
+              :placeholder="$t('stock.searchPlaceholder')"
               width="100%"
               @search="onQuery"
               @enter="onQuery"
             />
           </FormField>
-          <FormField label="分类" class="w-[150px]">
+          <FormField :label="$t('stock.category')" class="w-[150px]">
             <select v-model="query.categoryId" class="input w-full" @change="onQuery">
-              <option value="">全部分类</option>
+              <option value="">{{ $t('stock.allCategories') }}</option>
               <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </FormField>
-          <FormField label="库存状态" class="w-[140px]">
+          <FormField :label="$t('stock.stockStateFilter')" class="w-[140px]">
             <select v-model="query.stockState" class="input w-full" @change="onQuery">
               <option v-for="o in STOCK_STATE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </FormField>
-          <FormField label="排序" class="w-[200px]">
+          <FormField :label="$t('stock.sortLabel')" class="w-[200px]">
             <select v-model="query.sortKey" class="input w-full" @change="onQuery">
               <option v-for="o in SORT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </FormField>
           <div class="flex items-center gap-2 pb-[1px]">
-            <AppButton variant="primary" icon="search" @click="onQuery">查询</AppButton>
-            <AppButton icon="refresh" @click="onReset">重置</AppButton>
+            <AppButton variant="primary" icon="search" @click="onQuery">{{ $t('common.search') }}</AppButton>
+            <AppButton icon="refresh" @click="onReset">{{ $t('common.reset') }}</AppButton>
           </div>
           <div class="flex-1" />
           <div class="text-xs text-text-3 pb-2">
-            当前页库存金额 <span class="price text-text ml-1">{{ money(pageAmount) }}</span>
+            {{ $t('stock.pageAmount') }} <span class="price text-text ml-1">{{ money(pageAmount) }}</span>
           </div>
         </div>
       </div>
@@ -415,8 +426,8 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
           :list="list"
           :loading="loading"
           row-key="productId"
-          empty-text="没有符合条件的库存"
-          empty-hint="试试切换分类，或点「重置」清空筛选条件"
+          :empty-text="$t('stock.emptyText')"
+          :empty-hint="$t('stock.emptyHint')"
         >
           <template #cell-barcode="{ row }">
             <span class="font-mono text-[12.5px] text-text-2">{{ row.barcode }}</span>
@@ -462,7 +473,7 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
           </template>
 
           <template #cell-action="{ row }">
-            <button class="text-[12.5px] text-primary hover:underline" @click.stop="openAdjust(row)">调整库存</button>
+            <button class="text-[12.5px] text-primary hover:underline" @click.stop="openAdjust(row)">{{ $t('stock.adjust') }}</button>
           </template>
         </DataTable>
 
@@ -480,32 +491,32 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
     <!-- 库存调整 -->
     <AppModal
       v-model="adjustVisible"
-      title="调整库存"
-      :subtitle="current ? `${current.name} · ${current.barcode} · 当前库存 ${qty(current.stock)}${current.unit}` : ''"
+      :title="$t('stock.adjustTitle')"
+      :subtitle="current ? $t('stock.adjustSubtitle', { name: current.name, barcode: current.barcode, qty: qty(current.stock), unit: current.unit }) : ''"
       width="560"
     >
       <div class="space-y-3">
-        <FormField label="调整类型" required :hint="adjustTypeHint">
+        <FormField :label="$t('stock.adjustType')" required :hint="adjustTypeHint">
           <select v-model="adjustForm.type" class="input w-full">
             <option v-for="x in ADJUST_TYPES" :key="x.value" :value="x.value">{{ x.label }}</option>
           </select>
         </FormField>
 
-        <FormField label="调整数量" required hint="正数代表增加（盘盈），负数代表减少（损耗 / 破损）">
+        <FormField :label="$t('stock.adjustQty')" required :hint="$t('stock.adjustQtyHintFull')">
           <div class="flex items-center gap-2">
             <button class="btn btn-default btn-sm" @click="step(-1)">−1</button>
             <input
               v-model="adjustForm.changeQty"
               type="number"
               class="input flex-1 text-right num"
-              placeholder="例如 -3 或 5"
+              :placeholder="$t('stock.adjustQtyPlaceholder')"
             />
             <button class="btn btn-default btn-sm" @click="step(1)">+1</button>
           </div>
         </FormField>
 
-        <FormField label="调整原因" required>
-          <textarea v-model="adjustForm.reason" class="w-full" rows="2" placeholder="请填写调整原因，会写入库存流水" />
+        <FormField :label="$t('stock.adjustReason')" required>
+          <textarea v-model="adjustForm.reason" class="w-full" rows="2" :placeholder="$t('stock.adjustReasonPlaceholder')" />
           <div class="flex flex-wrap gap-1.5 mt-2">
             <button
               v-for="r in COMMON_REASONS"
@@ -522,7 +533,7 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
         <!-- 调整后库存预览：只读，随输入实时计算 -->
         <div class="rounded-md p-3 border border-line" :style="{ background: 'var(--c-surface-2)' }">
           <div class="flex items-center justify-between">
-            <span class="text-[13px] text-text-2">调整后库存预览</span>
+            <span class="text-[13px] text-text-2">{{ $t('stock.afterStockPreview') }}</span>
             <StatusTag :value="current ? stateOf(adjustAfter, current.warnThreshold) : 'normal'" :map="STOCK_STATE_MAP" />
           </div>
           <div class="flex items-baseline gap-2 mt-1.5">
@@ -535,16 +546,16 @@ const pageAmount = computed(() => sumBy(list.value, (r) => r.stockAmount))
             </span>
           </div>
           <div class="text-xs text-text-3 mt-1">
-            库存金额：
+            {{ $t('stock.stockAmount') }}：
             <span class="num">{{ money(adjustAfter * Number(current?.costPrice || 0)) }}</span>
-            <span v-if="current" class="ml-3">预警阈值：{{ qty(current.warnThreshold) }}{{ current.unit }}</span>
+            <span v-if="current" class="ml-3">{{ $t('stock.warnThreshold') }}：{{ qty(current.warnThreshold) }}{{ current.unit }}</span>
           </div>
         </div>
       </div>
 
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" :loading="adjusting" icon="check" @click="submitAdjust">确认调整</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" :loading="adjusting" icon="check" @click="submitAdjust">{{ $t('stock.confirmAdjust') }}</AppButton>
       </template>
     </AppModal>
   </PageShell>

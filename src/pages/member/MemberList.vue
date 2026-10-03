@@ -6,7 +6,7 @@
  * 收银员看到的「注销」按钮保持可见但禁用，并用 title 说明原因——
  * 直接隐藏按钮会让收银员以为系统坏了，禁用 + tooltip 更符合门店培训习惯。
  *
- * 演示环境后端不落库，所以写操作成功后统一用 t.patchLocal / t.unshiftLocal
+ * 演示环境后端不落库，所以写操作成功后统一用 table.patchLocal / table.unshiftLocal
  * 把结果合并回本地列表，保证「点完立刻能看到变化」。
  */
 import { ref, reactive, computed, onMounted } from 'vue'
@@ -20,6 +20,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useTable } from '@/composables/useTable'
+import { useI18n } from '@/i18n'
 import PageShell from '@/components/layout/PageShell.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -35,43 +36,83 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const { isManager } = useAuth()
+const { t, tl } = useI18n()
 
-/** 会员等级与状态：下拉选项与徽章映射集中定义，方便后续加卡种 */
-const LEVELS = [
-  { value: 'normal', label: '普通会员' },
-  { value: 'silver', label: '银卡会员' },
-  { value: 'gold', label: '金卡会员' },
-  { value: 'diamond', label: '钻石会员' },
-]
-const LEVEL_NAME = Object.fromEntries(LEVELS.map((l) => [l.value, l.label]))
-const MEMBER_STATUS_STYLE = {
-  active: { label: '正常', class: 'badge-success' },
-  disabled: { label: '已注销', class: 'badge-muted' },
+/* --------------------- 等级码 / 状态码 → 字典文案 --------------------- */
+const LEVEL_KEY = {
+  normal: 'member.levelNormal',
+  silver: 'member.levelSilver',
+  gold: 'member.levelGold',
+  diamond: 'member.levelDiamond',
 }
+/** 中文等级名 → 字典键：mock 里只有 levelName 时按名称反查 */
+const LEVEL_NAME_KEY = {
+  '普通会员': 'member.levelNormal',
+  '银卡会员': 'member.levelSilver',
+  '金卡会员': 'member.levelGold',
+  '钻石会员': 'member.levelDiamond',
+}
+
+const LEVELS = computed(() => [
+  { value: 'normal', label: t('member.levelNormal') },
+  { value: 'silver', label: t('member.levelSilver') },
+  { value: 'gold', label: t('member.levelGold') },
+  { value: 'diamond', label: t('member.levelDiamond') },
+])
+
+const MEMBER_STATUS_CLASS = {
+  active: 'badge-success',
+  disabled: 'badge-muted',
+}
+/** 状态徽章：配色沿用原映射，文案按当前语言取 */
+const statusMap = computed(() => ({
+  active: { label: t('member.normal'), class: MEMBER_STATUS_CLASS.active },
+  disabled: { label: t('member.cancelled'), class: MEMBER_STATUS_CLASS.disabled },
+}))
+
+function statusText(row) {
+  return statusMap.value[row?.status]?.label || tl(row, 'statusName', row?.status || '')
+}
+
+/** 等级文案：优先按等级码取字典，缺码时按中文名反查，最后回退原值 */
+function levelText(row) {
+  if (row?.level && LEVEL_KEY[row.level]) return t(LEVEL_KEY[row.level])
+  const key = LEVEL_NAME_KEY[row?.levelName]
+  return key ? t(key) : tl(row, 'levelName')
+}
+
+function levelNameOf(code) {
+  return LEVEL_KEY[code] ? t(LEVEL_KEY[code]) : code
+}
+
+function pointsText(n) {
+  return `${thousands(Number(n || 0))} ${t('member.pointsUnit')}`
+}
+
 const PHONE_RE = /^1\d{10}$/
 
 /* ------------------------------- 列表 ------------------------------- */
-const t = useTable(memberApi.list, {
+const table = useTable(memberApi.list, {
   filters: { keyword: '', level: '', status: '' },
   pageSize: 20,
 })
 // 解构出 ref 后模板里可直接用（对象里的 ref 在模板中不会自动解包）
-const { list, total, loading, query, page, size } = t
+const { list, total, loading, query, page, size } = table
 
-const columns = [
-  { key: 'memberNo', label: '会员号', width: 118 },
-  { key: 'name', label: '姓名', width: 130 },
-  { key: 'phone', label: '手机号', width: 126 },
-  { key: 'levelName', label: '等级', width: 96 },
-  { key: 'points', label: '积分', width: 84, align: 'right', format: (r) => thousands(r.points) },
-  { key: 'balance', label: '储值余额', width: 100, align: 'right', format: (r) => money(r.balance) },
-  { key: 'totalConsume', label: '累计消费', width: 106, align: 'right', format: (r) => money(r.totalConsume) },
-  { key: 'orderCount', label: '订单数', width: 78, align: 'right' },
-  { key: 'lastConsumeAt', label: '最后消费时间', width: 140, format: (r) => (r.lastConsumeAt ? dateOnly(r.lastConsumeAt) : '—') },
-  { key: 'createdAt', label: '注册时间', width: 108, format: (r) => dateOnly(r.createdAt) },
-  { key: 'status', label: '状态', width: 88 },
-  { key: 'actions', label: '操作', width: 246, align: 'right' },
-]
+const columns = computed(() => [
+  { key: 'memberNo', label: t('member.memberNo'), width: 118 },
+  { key: 'name', label: t('member.name'), width: 130 },
+  { key: 'phone', label: t('member.phone'), width: 126 },
+  { key: 'levelName', label: t('member.level'), width: 96 },
+  { key: 'points', label: t('member.points'), width: 84, align: 'right', format: (r) => thousands(r.points) },
+  { key: 'balance', label: t('member.balance'), width: 100, align: 'right', format: (r) => money(r.balance) },
+  { key: 'totalConsume', label: t('member.totalConsume'), width: 106, align: 'right', format: (r) => money(r.totalConsume) },
+  { key: 'orderCount', label: t('member.orderCount'), width: 78, align: 'right' },
+  { key: 'lastConsumeAt', label: t('member.lastConsumeAt'), width: 140, format: (r) => (r.lastConsumeAt ? dateOnly(r.lastConsumeAt) : '—') },
+  { key: 'createdAt', label: t('member.createdAt'), width: 108, format: (r) => dateOnly(r.createdAt) },
+  { key: 'status', label: t('member.status'), width: 88 },
+  { key: 'actions', label: t('common.actions'), width: 246, align: 'right' },
+])
 
 /* ------------------------------- KPI ------------------------------- */
 const stats = reactive({ total: 0, disabled: 0, monthNew: 0, monthLabel: '', balance: 0, consume: 0 })
@@ -102,71 +143,71 @@ onMounted(loadStats)
 
 const kpis = computed(() => [
   {
-    label: '会员总数',
+    label: t('member.totalMembers'),
     value: thousands(stats.total),
-    unit: '位',
+    unit: t('member.unitPerson'),
     icon: 'members',
     color: 'var(--c-primary)',
     bg: 'var(--c-primary-soft)',
-    foot: `其中已注销 ${stats.disabled} 位`,
+    foot: t('member.totalFoot', { n: stats.disabled }),
   },
   {
-    label: '本月新增',
+    label: t('member.newThisMonth'),
     value: thousands(stats.monthNew),
-    unit: '位',
+    unit: t('member.unitPerson'),
     icon: 'trendUp',
     color: 'var(--c-accent)',
     bg: 'var(--c-accent-soft)',
-    foot: `统计月份 ${stats.monthLabel || '—'}`,
+    foot: t('member.monthFoot', { month: stats.monthLabel || '—' }),
   },
   {
-    label: '会员余额合计',
+    label: t('member.balanceTotal'),
     value: money(stats.balance),
     icon: 'wallet',
     color: 'var(--c-purple)',
     bg: 'var(--c-purple-soft)',
-    foot: '尚未消费的储值卡余额',
+    foot: t('member.balanceFoot'),
   },
   {
-    label: '累计消费金额',
+    label: t('member.consumeTotal'),
     value: money(stats.consume),
     icon: 'money',
     color: 'var(--c-warning)',
     bg: 'var(--c-warning-soft)',
-    foot: '全部会员历史消费合计',
+    foot: t('member.consumeFoot'),
   },
 ])
 
 /* ------------------------------ 筛选 / 导出 ------------------------------ */
 function onReset() {
-  t.reset()
+  table.reset()
 }
 
 async function onExport() {
-  const rows = await t.fetchAll()
+  const rows = await table.fetchAll()
   if (!rows.length) {
-    toast.warning('当前筛选结果为空，没有可导出的数据')
+    toast.warning(t('member.exportEmpty'))
     return
   }
   exportObjects(
-    `会员列表_${dateStr()}`,
+    `${t('member.exportName')}_${dateStr()}`,
     [
-      ['memberNo', '会员号'],
-      ['name', '姓名'],
-      ['phone', '手机号'],
-      ['levelName', '会员等级'],
-      ['points', '积分'],
-      ['balance', '储值余额'],
-      ['totalConsume', '累计消费'],
-      ['orderCount', '订单数'],
-      ['lastConsumeAt', '最后消费时间'],
-      ['createdAt', '注册时间'],
-      ['status', '状态', (r) => MEMBER_STATUS_STYLE[r.status]?.label || r.status],
-      ['remark', '备注'],
+      ['memberNo', t('member.memberNo')],
+      ['name', t('member.name')],
+      ['phone', t('member.phone')],
+      ['levelName', t('member.levelLabel')],
+      ['points', t('member.points')],
+      ['balance', t('member.balance')],
+      ['totalConsume', t('member.totalConsume')],
+      ['orderCount', t('member.orderCount')],
+      ['lastConsumeAt', t('member.lastConsumeAt')],
+      ['createdAt', t('member.createdAt')],
+      ['status', t('member.status'), (r) => statusText(r)],
+      ['remark', t('member.remark')],
     ],
     rows,
   )
-  toast.ok(`已导出 ${rows.length} 条会员数据`)
+  toast.ok(t('member.exportedOk', { n: rows.length }))
 }
 
 /* ------------------------------- 新建 ------------------------------- */
@@ -193,8 +234,8 @@ function openCreate() {
 }
 
 async function submitCreate(close) {
-  createErr.name = createForm.name.trim() ? '' : '请输入会员姓名'
-  createErr.phone = PHONE_RE.test(createForm.phone.trim()) ? '' : '请输入 11 位有效手机号'
+  createErr.name = createForm.name.trim() ? '' : t('member.nameRequired')
+  createErr.phone = PHONE_RE.test(createForm.phone.trim()) ? '' : t('member.phoneInvalid')
   if (createErr.name || createErr.phone) return
 
   const payload = {
@@ -203,15 +244,15 @@ async function submitCreate(close) {
     phone: createForm.phone.trim(),
     gender: createForm.gender,
     level: createForm.level,
-    levelName: LEVEL_NAME[createForm.level],
+    levelName: levelNameOf(createForm.level),
   }
   const res = await memberApi.create(payload)
-  toast.ok(res.message || '会员创建成功')
+  toast.ok(res.message || t('member.createOk'))
   // 本地插入草稿行：演示环境不落库，靠这一步让界面立刻出现新会员
   const now = new Date()
   const p = (n) => String(n).padStart(2, '0')
   const createdAt = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`
-  t.unshiftLocal({
+  table.unshiftLocal({
     id: `M${Date.now()}`,
     ...payload,
     points: 0,
@@ -248,8 +289,8 @@ function openEdit(row) {
 }
 
 async function submitEdit(close) {
-  editErr.name = editForm.name.trim() ? '' : '请输入会员姓名'
-  editErr.phone = PHONE_RE.test(editForm.phone.trim()) ? '' : '请输入 11 位有效手机号'
+  editErr.name = editForm.name.trim() ? '' : t('member.nameRequired')
+  editErr.phone = PHONE_RE.test(editForm.phone.trim()) ? '' : t('member.phoneInvalid')
   if (editErr.name || editErr.phone) return
 
   const id = editRow.value.id
@@ -257,12 +298,12 @@ async function submitEdit(close) {
     name: editForm.name.trim(),
     phone: editForm.phone.trim(),
     level: editForm.level,
-    levelName: LEVEL_NAME[editForm.level],
+    levelName: levelNameOf(editForm.level),
     remark: editForm.remark.trim(),
   }
   const res = await memberApi.update(id, patch)
-  toast.ok(res.message || '会员信息已更新')
-  t.patchLocal(id, patch)
+  toast.ok(res.message || t('member.updateOk'))
+  table.patchLocal(id, patch)
   close()
 }
 
@@ -287,30 +328,35 @@ function stepPoints(n) {
 
 async function submitPoints(close) {
   const change = Number(pointsForm.change || 0)
-  pointsErr.change = change === 0 ? '调整数量不能为 0' : ''
-  pointsErr.reason = pointsForm.reason.trim() ? '' : '请填写调整原因（便于日后对账）'
+  pointsErr.change = change === 0 ? t('member.adjustZero') : ''
+  pointsErr.reason = pointsForm.reason.trim() ? '' : t('member.adjustReasonRequired')
   if (pointsErr.change || pointsErr.reason) return
 
   const id = pointsRow.value.id
   const res = await memberApi.adjustPoints(id, { change, reason: pointsForm.reason.trim() })
-  toast.ok(res.message || `积分已${change > 0 ? '增加' : '扣减'} ${Math.abs(change)} 分`)
-  t.patchLocal(id, { points: Number(pointsRow.value.points || 0) + change })
+  toast.ok(
+    res.message ||
+      (change > 0
+        ? t('member.pointsAdded', { n: Math.abs(change) })
+        : t('member.pointsDeducted', { n: Math.abs(change) })),
+  )
+  table.patchLocal(id, { points: Number(pointsRow.value.points || 0) + change })
   close()
 }
 
 /* ------------------------------- 注销 ------------------------------- */
 async function deactivate(row) {
   const ok = await confirm({
-    title: `注销会员「${row.name}」`,
-    content: '注销后该会员不能再参与积分与折扣，但会保留历史订单与消费记录，此操作不可撤销。',
-    confirmText: '确认注销',
+    title: t('member.cancelTitle'),
+    content: t('member.cancelConfirm', { name: row.name }),
+    confirmText: t('member.cancelConfirmBtn'),
     danger: true,
   })
   if (!ok) return
   const res = await memberApi.remove(row.id)
-  toast.ok(res.message || '会员已注销，历史订单与消费记录已保留')
+  toast.ok(res.message || t('member.cancelOk'))
   // 不真删：注销只是状态变更，历史订单还要能查到该会员
-  t.patchLocal(row.id, { status: 'disabled' })
+  table.patchLocal(row.id, { status: 'disabled' })
   stats.disabled += 1
 }
 </script>
@@ -318,14 +364,14 @@ async function deactivate(row) {
 <template>
   <PageShell>
     <PageHeader
-      title="会员管理"
-      desc="维护会员档案、等级、积分与储值余额；注销会员不影响历史订单查询"
+      :title="$t('member.title')"
+      :desc="$t('member.desc')"
       icon="members"
     >
       <template #actions>
-        <AppButton icon="download" @click="onExport">导出会员</AppButton>
-        <AppButton icon="fileAdd" @click="router.push({ name: 'member-create' })">完整表单录入</AppButton>
-        <AppButton variant="primary" icon="plus" @click="openCreate">新建会员</AppButton>
+        <AppButton icon="download" @click="onExport">{{ $t('member.exportMembers') }}</AppButton>
+        <AppButton icon="fileAdd" @click="router.push({ name: 'member-create' })">{{ $t('member.fullForm') }}</AppButton>
+        <AppButton variant="primary" icon="plus" @click="openCreate">{{ $t('member.newMember') }}</AppButton>
       </template>
     </PageHeader>
 
@@ -358,31 +404,31 @@ async function deactivate(row) {
     <!-- 筛选栏 -->
     <div class="card card-pad mt-3">
       <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 items-end">
-        <FormField label="关键字" class="col-span-2">
+        <FormField :label="$t('common.keyword')" class="col-span-2">
           <SearchInput
             v-model="query.keyword"
-            placeholder="姓名 / 手机号 / 会员号"
+            :placeholder="$t('member.searchPlaceholder')"
             width="100%"
-            @search="t.reload()"
-            @enter="t.reload()"
+            @search="table.reload()"
+            @enter="table.reload()"
           />
         </FormField>
-        <FormField label="会员等级">
+        <FormField :label="$t('member.levelLabel')">
           <select v-model="query.level" class="input w-full">
-            <option value="">全部等级</option>
+            <option value="">{{ $t('member.levelPlaceholder') }}</option>
             <option v-for="l in LEVELS" :key="l.value" :value="l.value">{{ l.label }}</option>
           </select>
         </FormField>
-        <FormField label="会员状态">
+        <FormField :label="$t('member.statusLabel')">
           <select v-model="query.status" class="input w-full">
-            <option value="">全部状态</option>
-            <option value="active">正常</option>
-            <option value="disabled">已注销</option>
+            <option value="">{{ $t('member.statusPlaceholder') }}</option>
+            <option value="active">{{ $t('member.normal') }}</option>
+            <option value="disabled">{{ $t('member.cancelled') }}</option>
           </select>
         </FormField>
         <div class="flex items-center gap-2">
-          <AppButton variant="primary" icon="search" @click="t.reload()">查询</AppButton>
-          <AppButton icon="refresh" @click="onReset">重置</AppButton>
+          <AppButton variant="primary" icon="search" @click="table.reload()">{{ $t('common.search') }}</AppButton>
+          <AppButton icon="refresh" @click="onReset">{{ $t('common.reset') }}</AppButton>
         </div>
       </div>
     </div>
@@ -391,11 +437,11 @@ async function deactivate(row) {
     <div class="card mt-3">
       <div class="panel-head">
         <div>
-          <div class="text-[14px] font-semibold">会员档案</div>
-          <div class="text-[11.5px] text-text-3 mt-0.5">共 {{ total }} 条记录 · 按注册时间倒序</div>
+          <div class="text-[14px] font-semibold">{{ $t('member.listTitle') }}</div>
+          <div class="text-[11.5px] text-text-3 mt-0.5">{{ $t('member.listFoot', { n: total }) }}</div>
         </div>
         <div class="text-[11.5px] text-text-3">
-          {{ isManager ? '店长可执行全部操作' : '收银员可新建 / 编辑 / 调整积分，注销需店长权限' }}
+          {{ isManager ? $t('member.managerScope') : $t('member.cashierScope') }}
         </div>
       </div>
 
@@ -404,13 +450,13 @@ async function deactivate(row) {
         :list="list"
         :loading="loading"
         row-key="id"
-        empty-text="没有匹配的会员"
-        empty-hint="试试换个关键字，或点击右上角「新建会员」录入"
+        :empty-text="$t('member.emptyText')"
+        :empty-hint="$t('member.emptyHint')"
       >
         <template #cell-memberNo="{ row }">
           <button
             class="font-mono text-[12.5px] hover:text-primary"
-            title="查看会员详情"
+            :title="$t('member.viewDetail')"
             @click="router.push({ name: 'member-detail', params: { id: row.id } })"
           >
             {{ row.memberNo || row.id }}
@@ -420,7 +466,7 @@ async function deactivate(row) {
         <template #cell-name="{ row }">
           <span class="flex items-center gap-2 min-w-0">
             <span class="truncate">{{ row.name }}</span>
-            <span class="badge" :class="MEMBER_LEVEL_STYLE[row.level]">{{ row.levelName }}</span>
+            <span class="badge" :class="MEMBER_LEVEL_STYLE[row.level]">{{ levelText(row) }}</span>
           </span>
         </template>
 
@@ -440,133 +486,133 @@ async function deactivate(row) {
           <span v-if="row.lastConsumeAt" :title="fromNow(row.lastConsumeAt)">
             {{ dateOnly(row.lastConsumeAt) }}
           </span>
-          <span v-else class="text-text-3">从未消费</span>
+          <span v-else class="text-text-3">{{ $t('member.neverConsumed') }}</span>
         </template>
 
         <template #cell-status="{ row }">
-          <StatusTag :value="row.status" :map="MEMBER_STATUS_STYLE" />
+          <StatusTag :value="row.status" :map="statusMap" />
         </template>
 
         <template #cell-actions="{ row }">
           <div class="flex items-center justify-end gap-1">
             <AppButton size="sm" variant="ghost" icon="eye" @click.stop="router.push({ name: 'member-detail', params: { id: row.id } })">
-              详情
+              {{ $t('common.detail') }}
             </AppButton>
-            <AppButton size="sm" variant="ghost" icon="edit" @click.stop="openEdit(row)">编辑</AppButton>
-            <AppButton size="sm" variant="ghost" icon="star" @click.stop="openPoints(row)">调分</AppButton>
+            <AppButton size="sm" variant="ghost" icon="edit" @click.stop="openEdit(row)">{{ $t('common.edit') }}</AppButton>
+            <AppButton size="sm" variant="ghost" icon="star" @click.stop="openPoints(row)">{{ $t('member.adjustPoints') }}</AppButton>
             <AppButton
               size="sm"
               variant="danger-soft"
               icon="close"
               :disabled="!isManager"
-              :title="isManager ? '注销会员（保留历史订单）' : '仅店长可注销会员'"
+              :title="isManager ? $t('member.cancelTip') : $t('member.cancelOnlyManager')"
               @click.stop="deactivate(row)"
             >
-              注销
+              {{ $t('member.cancelBtn') }}
             </AppButton>
           </div>
         </template>
       </DataTable>
 
       <div class="px-4 py-3 border-t border-line">
-        <Pagination v-model:page="page" v-model:page-size="size" :total="total" @change="t.onPageChange" />
+        <Pagination v-model:page="page" v-model:page-size="size" :total="total" @change="table.onPageChange" />
       </div>
     </div>
 
     <!-- 新建会员 -->
-    <AppModal v-model="createVisible" title="新建会员" subtitle="收银台高频操作：录入手机号即可开卡" width="560">
+    <AppModal v-model="createVisible" :title="$t('member.newMember')" :subtitle="$t('member.createSubtitle')" width="560">
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="会员号" hint="系统自动生成，不可修改">
+        <FormField :label="$t('member.memberNo')" :hint="$t('member.memberNoAuto')">
           <input class="input w-full font-mono" :value="createForm.memberNo" disabled />
         </FormField>
-        <FormField label="姓名" required :error="createErr.name">
-          <input v-model="createForm.name" class="input w-full" placeholder="请输入会员姓名" />
+        <FormField :label="$t('member.name')" required :error="createErr.name">
+          <input v-model="createForm.name" class="input w-full" :placeholder="$t('member.namePlaceholder')" />
         </FormField>
-        <FormField label="手机号" required :error="createErr.phone" hint="11 位手机号，用于收银台检索">
-          <input v-model="createForm.phone" class="input w-full" maxlength="11" placeholder="请输入手机号" />
+        <FormField :label="$t('member.phone')" required :error="createErr.phone" :hint="$t('member.phoneHint')">
+          <input v-model="createForm.phone" class="input w-full" maxlength="11" :placeholder="$t('member.phonePlaceholder')" />
         </FormField>
-        <FormField label="性别">
+        <FormField :label="$t('member.gender')">
           <select v-model="createForm.gender" class="input w-full">
-            <option value="male">男</option>
-            <option value="female">女</option>
+            <option value="male">{{ $t('member.male') }}</option>
+            <option value="female">{{ $t('member.female') }}</option>
           </select>
         </FormField>
-        <FormField label="会员等级" span="2">
+        <FormField :label="$t('member.levelLabel')" span="2">
           <select v-model="createForm.level" class="input w-full">
             <option v-for="l in LEVELS" :key="l.value" :value="l.value">{{ l.label }}</option>
           </select>
         </FormField>
       </div>
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="check" @click="submitCreate(close)">保存并开卡</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="check" @click="submitCreate(close)">{{ $t('member.saveAndCreate') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 编辑会员 -->
     <AppModal
       v-model="editVisible"
-      title="编辑会员"
+      :title="$t('member.editMember')"
       :subtitle="editRow ? `${editRow.memberNo} · ${editRow.name}` : ''"
       width="560"
     >
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="姓名" required :error="editErr.name">
-          <input v-model="editForm.name" class="input w-full" placeholder="请输入会员姓名" />
+        <FormField :label="$t('member.name')" required :error="editErr.name">
+          <input v-model="editForm.name" class="input w-full" :placeholder="$t('member.namePlaceholder')" />
         </FormField>
-        <FormField label="手机号" required :error="editErr.phone">
-          <input v-model="editForm.phone" class="input w-full" maxlength="11" placeholder="11 位手机号" />
+        <FormField :label="$t('member.phone')" required :error="editErr.phone">
+          <input v-model="editForm.phone" class="input w-full" maxlength="11" :placeholder="$t('member.phonePlaceholder')" />
         </FormField>
-        <FormField label="会员等级" span="2" hint="等级影响积分倍率与会员折扣">
+        <FormField :label="$t('member.levelLabel')" span="2" :hint="$t('member.levelHint')">
           <select v-model="editForm.level" class="input w-full">
             <option v-for="l in LEVELS" :key="l.value" :value="l.value">{{ l.label }}</option>
           </select>
         </FormField>
-        <FormField label="备注" span="2">
-          <textarea v-model="editForm.remark" class="w-full" rows="2" placeholder="如：重点维护客户、忌口备注等" />
+        <FormField :label="$t('common.remark')" span="2">
+          <textarea v-model="editForm.remark" class="w-full" rows="2" :placeholder="$t('member.remarkPlaceholder')" />
         </FormField>
       </div>
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="save" @click="submitEdit(close)">保存</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="save" @click="submitEdit(close)">{{ $t('common.save') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 调整积分 -->
     <AppModal
       v-model="pointsVisible"
-      title="调整积分"
+      :title="$t('member.adjustPoints')"
       :subtitle="pointsRow ? `${pointsRow.name} · ${pointsRow.memberNo}` : ''"
       width="520"
     >
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="当前积分">
-          <input class="input w-full num" :value="`${thousands(pointsRow?.points || 0)} 分`" disabled />
+        <FormField :label="$t('member.currentPoints')">
+          <input class="input w-full num" :value="pointsText(pointsRow?.points || 0)" disabled />
         </FormField>
-        <FormField label="调整后积分">
+        <FormField :label="$t('member.adjustAfter')">
           <input
             class="input w-full num"
-            :value="`${thousands(Number(pointsRow?.points || 0) + Number(pointsForm.change || 0))} 分`"
+            :value="pointsText(Number(pointsRow?.points || 0) + Number(pointsForm.change || 0))"
             disabled
           />
         </FormField>
-        <FormField label="调整数量" required :error="pointsErr.change" hint="正数增加、负数扣减" span="2">
+        <FormField :label="$t('member.adjustQty')" required :error="pointsErr.change" :hint="$t('member.adjustQtyHint')" span="2">
           <div class="flex items-center gap-2">
             <AppButton icon="minus" @click="stepPoints(-10)">-10</AppButton>
             <input v-model.number="pointsForm.change" type="number" class="input w-full num text-center" />
             <AppButton icon="plus" @click="stepPoints(10)">+10</AppButton>
           </div>
         </FormField>
-        <FormField label="调整原因" required :error="pointsErr.reason" span="2">
-          <input v-model="pointsForm.reason" class="input w-full" placeholder="如：活动补偿 / 积分兑换 / 手工纠正" />
+        <FormField :label="$t('member.adjustReason')" required :error="pointsErr.reason" span="2">
+          <input v-model="pointsForm.reason" class="input w-full" :placeholder="$t('member.reasonPlaceholder')" />
         </FormField>
       </div>
       <div class="mt-3 text-[11.5px] text-text-3 leading-relaxed">
-        积分调整会写入会员积分明细，并同步更新会员的可用积分。
+        {{ $t('member.adjustNote') }}
       </div>
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="check" @click="submitPoints(close)">确认调整</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="check" @click="submitPoints(close)">{{ $t('member.adjustConfirm') }}</AppButton>
       </template>
     </AppModal>
   </PageShell>

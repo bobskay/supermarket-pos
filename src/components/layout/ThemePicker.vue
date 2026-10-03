@@ -5,8 +5,9 @@
  * 三套皮肤平铺展示，点一下立刻预览。
  * 交互约定：点「当前已选中」的皮肤 → 收起面板（不再做无意义的重复切换）。
  */
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useTheme, THEMES } from '@/composables/useTheme'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 
 const props = defineProps({
@@ -17,7 +18,18 @@ const props = defineProps({
 })
 
 const { theme, setTheme } = useTheme()
+const { t } = useI18n()
 const open = ref(false)
+
+/** 皮肤名与说明都来自字典，缺键时回退到 useTheme 里的中文名 */
+const currentName = computed(() => {
+  const cur = THEMES.find((x) => x.key === theme.value)
+  return cur ? t(`theme.${cur.key}`, undefined, cur.name) : ''
+})
+const currentDesc = computed(() => {
+  const cur = THEMES.find((x) => x.key === theme.value)
+  return cur ? t(`theme.${cur.key}Desc`, undefined, cur.desc) : ''
+})
 
 function toggle() {
   open.value = !open.value
@@ -38,7 +50,7 @@ function pick(t) {
     <button
       v-if="variant === 'icon'"
       class="icon-btn"
-      :title="`当前皮肤：${THEMES.find((t) => t.key === theme)?.name}`"
+      :title="t('theme.current', { name: currentName })"
       @click="toggle"
     >
       <Icon name="palette" :size="17" />
@@ -46,11 +58,11 @@ function pick(t) {
     <button
       v-else
       class="btn btn-default btn-sm"
-      :title="`当前皮肤：${THEMES.find((t) => t.key === theme)?.name}`"
+      :title="t('theme.current', { name: currentName })"
       @click="toggle"
     >
       <Icon name="palette" :size="14" />
-      切换皮肤
+      {{ t('theme.switch') }}
       <Icon name="chevronDown" :size="12" class="opacity-70" />
     </button>
 
@@ -66,37 +78,43 @@ function pick(t) {
           boxShadow: 'var(--shadow-md)',
         }"
       >
-        <div class="px-1.5 pb-1.5 text-[11px] text-text-3">界面皮肤（共 {{ THEMES.length }} 套）</div>
+        <div class="px-1.5 pb-1.5 text-[11px] text-text-3">
+          {{ t('theme.count', { n: THEMES.length }) }}
+        </div>
 
+        <!-- 注意循环变量不能叫 t，否则会遮蔽 i18n 的 t() -->
         <div class="grid grid-cols-3 gap-1.5">
           <button
-            v-for="t in THEMES"
-            :key="t.key"
+            v-for="opt in THEMES"
+            :key="opt.key"
             class="p-1.5 rounded-md text-left transition-colors"
             :style="{
-              border: `1px solid ${theme === t.key ? 'var(--c-primary)' : 'var(--c-line)'}`,
-              background: theme === t.key ? 'var(--c-primary-soft)' : 'transparent',
+              border: `1px solid ${theme === opt.key ? 'var(--c-primary)' : 'var(--c-line)'}`,
+              background: theme === opt.key ? 'var(--c-primary-soft)' : 'transparent',
             }"
-            @click="pick(t)"
+            @click="pick(opt)"
           >
             <!-- 色板预览：页面底 / 卡片 / 主色 -->
             <span class="flex rounded overflow-hidden" style="border: 1px solid var(--c-line)">
-              <span v-for="c in t.preview" :key="c" class="flex-1 h-[26px]" :style="{ background: c }" />
+              <span v-for="c in opt.preview" :key="c" class="flex-1 h-[26px]" :style="{ background: c }" />
             </span>
             <span class="flex items-center gap-1 mt-1.5">
               <span
                 class="text-[12px] truncate"
-                :style="{ color: theme === t.key ? 'var(--c-primary)' : 'var(--c-text)', fontWeight: theme === t.key ? 600 : 400 }"
+                :style="{
+                  color: theme === opt.key ? 'var(--c-primary)' : 'var(--c-text)',
+                  fontWeight: theme === opt.key ? 600 : 400,
+                }"
               >
-                {{ t.name }}
+                {{ t(`theme.${opt.key}`, undefined, opt.name) }}
               </span>
-              <Icon v-if="theme === t.key" name="check" :size="12" :style="{ color: 'var(--c-primary)' }" />
+              <Icon v-if="theme === opt.key" name="check" :size="12" :style="{ color: 'var(--c-primary)' }" />
             </span>
           </button>
         </div>
 
         <div class="px-1.5 pt-1.5 mt-1.5 border-t border-line text-[11px] text-text-3 leading-relaxed">
-          {{ THEMES.find((t) => t.key === theme)?.desc }}
+          {{ currentDesc }}
         </div>
       </div>
     </Transition>

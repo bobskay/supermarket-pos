@@ -5,9 +5,10 @@
 
 - 技术栈：**Vue 3.5 + Vite 6 + TailwindCSS 4 + vue-router 4 + ECharts 5**
 - 三套皮肤：**清爽白 / 清新绿 / 曜石蓝**，右上角（登录页也有）一键切换
+- 双语界面：**简体中文 / English**，右上角 `CN | EN` 一键切换，无需刷新页面
 - 视觉风格：简约商务、扁平化、无渐变无多余装饰
 - 离线可跑：`dist` 目录可直接双击 `index.html` 打开（哈希路由 + 相对资源路径）
-- 零 UI 框架 / 零图标库 / 零 Pinia：组件库、图标、假后端全部自带
+- 零 UI 框架 / 零图标库 / 零 Pinia / 零 i18n 依赖：组件库、图标、多语言、假后端全部自带
 
 ---
 
@@ -59,6 +60,8 @@ shop/
 │  ├─ verify-mock-api.mjs     假后端自检（53 项断言，不需要浏览器）
 │  ├─ check-sfc.mjs           用 Vue 官方编译器校验全部 SFC
 │  ├─ check-template-refs.mjs 检查模板里对响应式对象的多余 .value
+│  ├─ check-i18n.mjs          扫描模板里未接入多语言的中文字面量
+│  ├─ check-i18n-keys.mjs     校验 i18n 键完整性（缺失 / zh-en 不对齐 / 冗余）
 │  └─ audit-pages.mjs         页面规范静态审查（颜色 / 图标 / 组件导入）
 │
 ├─ .github/workflows/deploy-pages.yml   GitHub Pages 自动部署
@@ -70,10 +73,11 @@ shop/
 │  │  ├─ request.js           「假 axios」：与 axios API 完全一致
 │  │  └─ index.js             领域 API 出口
 │  ├─ components/
-│  │  ├─ layout/              AppShell / SideNav / MenuItem / TopBar / ThemePicker / PageShell / ProgressBar
+│  │  ├─ layout/              AppShell / SideNav / MenuItem / TopBar / ThemePicker / LangPicker / PageShell / ProgressBar
 │  │  ├─ ui/                  自建组件库（15 个，见第八章）
 │  │  └─ ReceiptPaper.vue     80mm 小票（收银台与订单详情共用）
 │  ├─ composables/            useAuth / useTheme / useToast / useConfirm / useTable
+│  ├─ i18n/                   ★ 多语言：dict.js（中英字典）+ index.js（t/tl 运行时）
 │  ├─ pages/                  业务页面（24 个）
 │  ├─ router/index.js         哈希路由 + 登录守卫 + 角色权限守卫
 │  ├─ styles/
@@ -81,7 +85,8 @@ shop/
 │  │  └─ theme.css            ★ 三套皮肤的 CSS 变量 + @theme 映射
 │  └─ utils/                  format.js / export.js / product-image.js
 │
-└─ CONVENTIONS.md             ★ 开发规范（新增页面必读）
+├─ CONVENTIONS.md             ★ 开发规范（新增页面必读）
+└─ I18N-GUIDE.md              ★ 多语言改造规范
 ```
 
 ---
@@ -154,7 +159,62 @@ const { theme, setTheme, toggleTheme } = useTheme()
 
 ---
 
-## 五、页面清单（对照功能清单）
+## 五、双语界面（CN / EN）
+
+右上角（登录页也有一处）的 `CN | EN` 分段按钮用于切换界面语言，**不需要刷新页面**。
+
+```
+src/i18n/dict.js   中英文字典，按 nav / pos / order / member / product / stock / report / user / settings 分区
+src/i18n/index.js  t() / tl() / formatDateTime() / formatMoney() 与 locale 响应式状态
+src/main.js        全局注入 $t / $tl / $date / $money
+```
+
+**原理**：`t()` 在调用时读取响应式的 `locale`，所以模板里写过的 `{{ $t('nav.dashboard') }}`
+在语言变化时会被 Vue 自动重新渲染——这也是为什么切换语言不需要刷新。
+
+**用法**
+
+```vue
+<!-- 模板：直接用全局助手，不必 import -->
+{{ $t('common.save') }}
+{{ $t('pos.goodsTotal', { n: itemCount }) }}
+
+<!-- script：取响应式的 t -->
+<script setup>
+import { useI18n } from '@/i18n'
+const { t, tl, isZh } = useI18n()
+
+// 表格列名用 computed 包一层，语言切换时自动重算
+const columns = computed(() => [{ key: 'name', label: t('product.name') }])
+
+// mock 数据里的状态文案：优先读 xxxEn 字段，缺了回退中文
+const stateText = (row) => tl(row, 'statusName')
+</script>
+```
+
+**约定**
+
+| 项 | 说明 |
+| --- | --- |
+| 字典键命名 | 点分小写，按分区组织，例如 `order.refundTitle`、`stock.adjustOk` |
+| 缺失回退 | 英文缺键时自动回退中文，新增文案先写中文也能跑 |
+| 插值 | 用 `{name}` 占位，调用时传第二个参数对象 |
+| 数据内容 | 商品名、会员姓名、供应商等来自 `mock-data/*.json` 的内容**不翻译** |
+| 状态文案 | 用 `tl(record, 'statusName')` 或「状态码 → 字典键」映射，避免把中文写死在页面里 |
+| 全局注入 | `$t` / `$tl` / `$date` / `$money` 已在 `main.js` 注册，新增页面无需 import |
+
+**扩展第三门语言**：在 `dict.js` 里加一份同结构的字典（例如 `ja`），
+再往 `LOCALES` 里加一条 `{ key: 'ja', label: '日本語', short: 'JP' }`，右上角按钮会自动多出一项。
+
+**回归检查**
+
+```bash
+node scripts/check-i18n.mjs   # 扫描模板里还没接入多语言的中文字面量
+```
+
+---
+
+## 六、页面清单（对照功能清单）
 
 ### 概览与收银
 | 页面 | 路由 | 权限 |
@@ -193,7 +253,7 @@ const { theme, setTheme, toggleTheme } = useTheme()
 
 ---
 
-## 六、收银台（`/pos`）的效率设计
+## 七、收银台（`/pos`）的效率设计
 
 演示时最抓眼球的一页，专门做了收银现场的提效细节：
 
@@ -211,7 +271,7 @@ const { theme, setTheme, toggleTheme } = useTheme()
 
 ---
 
-## 七、商品图片怎么维护
+## 八、商品图片怎么维护
 
 61 个商品都配了扁平风格插图（苹果是红圆带绿叶、牛奶是蓝白纸盒、薯片是黄袋、卷纸是白卷…），
 由 `scripts/gen-product-images.mjs` 按品类配色生成，**不依赖外网图床**。
@@ -228,7 +288,7 @@ node scripts/gen-product-images.mjs   # 重新生成全部商品图
 
 ---
 
-## 八、组件库与组合式函数
+## 九、组件库与组合式函数
 
 本项目没有引入 UI 框架，组件都是自建的，因此风格与打包体积完全可控。
 
@@ -263,7 +323,7 @@ node scripts/gen-product-images.mjs   # 重新生成全部商品图
 
 ---
 
-## 九、模拟数据维护与自检
+## 十、模拟数据维护与自检
 
 数据由脚本生成，保证自洽（库存 = 入库 − 销售 + 调整、积分 = 消费金额累计）：
 
@@ -272,6 +332,8 @@ node scripts/gen-mock-data.mjs        # 重新生成 mock-data/*.json
 node scripts/verify-mock-api.mjs      # 假后端自检（53 项断言，不需要浏览器）
 node scripts/check-sfc.mjs            # 用 Vue 官方编译器校验全部 .vue
 node scripts/check-template-refs.mjs  # 检查模板里多余的 .value
+node scripts/check-i18n.mjs           # 扫残留中文文案
+node scripts/check-i18n-keys.mjs      # 校验 i18n 键完整性
 node scripts/audit-pages.mjs          # 页面规范审查（硬编码颜色 / 未定义图标 / 未导入组件）
 ```
 
@@ -280,7 +342,7 @@ node scripts/audit-pages.mjs          # 页面规范审查（硬编码颜色 / �
 
 ---
 
-## 十、部署到 GitHub Pages
+## 十一、部署到 GitHub Pages
 
 仓库已内置 GitHub Actions 工作流（`.github/workflows/deploy-pages.yml`），推送到 `main` 即自动构建并发布。
 
@@ -305,7 +367,7 @@ node scripts/audit-pages.mjs          # 页面规范审查（硬编码颜色 / �
 
 ---
 
-## 十一、演示建议路径
+## 十二、演示建议路径
 
 1. **登录页**：点「店长登录」一键进入，说明演示账号与权限设计
 2. **经营看板**：今日销售额、待办事项、库存预警、热销榜
@@ -319,7 +381,7 @@ node scripts/audit-pages.mjs          # 页面规范审查（硬编码颜色 / �
 
 ---
 
-## 十二、已知边界
+## 十三、已知边界
 
 - 所有写操作**不会改变** `mock-data/*.json`，页面内通过本地合并数据让界面立刻变化；
   刷新页面后恢复初始数据。这是演示版的刻意设计。

@@ -13,6 +13,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useTable } from '@/composables/useTable'
+import { useI18n } from '@/i18n'
 import Icon from '@/components/ui/Icon.vue'
 import Empty from '@/components/ui/Empty.vue'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -28,22 +29,25 @@ import AppButton from '@/components/ui/AppButton.vue'
 const toast = useToast()
 const confirm = useConfirm()
 const { user, isManager } = useAuth()
+/** 本地 t 已被表格实例占用，i18n 取词函数改名 tr */
+const { t: tr, tl } = useI18n()
 
 const ROLES = [
-  { value: 'manager', label: '店长' },
-  { value: 'cashier', label: '收银员' },
+  { value: 'manager', labelKey: 'user.manager' },
+  { value: 'cashier', labelKey: 'user.cashier' },
 ]
-const ROLE_NAME = Object.fromEntries(ROLES.map((r) => [r.value, r.label]))
+/** 提交给接口的角色中文名（数据层保持原样，展示走字典） */
+const ROLE_NAME = { manager: '店长', cashier: '收银员' }
 const ROLE_CLASS = { manager: 'badge-primary', cashier: 'badge-info' }
 /** 角色徽章映射：店长=主色，收银员=信息色（与侧边菜单的配色习惯一致） */
-const ROLE_STYLE_MAP = {
-  manager: { label: '店长', class: ROLE_CLASS.manager },
-  cashier: { label: '收银员', class: ROLE_CLASS.cashier },
-}
-const USER_STATUS_STYLE = {
-  active: { label: '正常', class: 'badge-success' },
-  disabled: { label: '已停用', class: 'badge-muted' },
-}
+const ROLE_STYLE_MAP = computed(() => ({
+  manager: { label: tr('user.manager'), class: ROLE_CLASS.manager },
+  cashier: { label: tr('user.cashier'), class: ROLE_CLASS.cashier },
+}))
+const USER_STATUS_STYLE = computed(() => ({
+  active: { label: tr('user.active'), class: 'badge-success' },
+  disabled: { label: tr('user.disabled'), class: 'badge-muted' },
+}))
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/
 const PHONE_RE = /^1\d{10}$/
 
@@ -54,17 +58,22 @@ const t = useTable(userApi.list, {
 })
 const { list, total, loading, query, page, size } = t
 
-const columns = [
-  { key: 'employeeNo', label: '工号', width: 90 },
-  { key: 'username', label: '账号', width: 124 },
-  { key: 'name', label: '姓名', width: 110 },
-  { key: 'role', label: '角色', width: 90 },
-  { key: 'phone', label: '手机号', width: 126 },
-  { key: 'status', label: '状态', width: 88 },
-  { key: 'lastLoginAt', label: '最后登录时间', width: 156, format: (r) => (r.lastLoginAt ? dateOnly(r.lastLoginAt) : '从未登录') },
-  { key: 'createdAt', label: '创建时间', width: 108, format: (r) => dateOnly(r.createdAt) },
-  { key: 'actions', label: '操作', width: 262, align: 'right' },
-]
+const columns = computed(() => [
+  { key: 'employeeNo', label: tr('user.employeeNo'), width: 90 },
+  { key: 'username', label: tr('user.username'), width: 124 },
+  { key: 'name', label: tr('user.name'), width: 110 },
+  { key: 'role', label: tr('user.role'), width: 90 },
+  { key: 'phone', label: tr('user.phone'), width: 126 },
+  { key: 'status', label: tr('user.status'), width: 88 },
+  {
+    key: 'lastLoginAt',
+    label: tr('user.lastLoginAt'),
+    width: 156,
+    format: (r) => (r.lastLoginAt ? dateOnly(r.lastLoginAt) : tr('user.neverLoggedIn')),
+  },
+  { key: 'createdAt', label: tr('user.createdAt'), width: 108, format: (r) => dateOnly(r.createdAt) },
+  { key: 'actions', label: tr('common.actions'), width: 262, align: 'right' },
+])
 
 const summary = computed(() => ({
   manager: list.value.filter((u) => u.role === 'manager').length,
@@ -106,10 +115,10 @@ function openCreate() {
 
 function checkUsername() {
   const v = createForm.username.trim()
-  if (!v) return '请输入登录账号'
-  if (!USERNAME_RE.test(v)) return '账号只能使用 3-20 位英文、数字或下划线'
+  if (!v) return tr('user.needUsername')
+  if (!USERNAME_RE.test(v)) return tr('user.usernameInvalid')
   // 唯一性前端校验：mock 列表里的账号不允许重复，避免演示时出现两个 admin
-  if (list.value.some((u) => u.username === v)) return '该账号已存在，请更换'
+  if (list.value.some((u) => u.username === v)) return tr('user.usernameTaken')
   return ''
 }
 
@@ -124,8 +133,8 @@ const nextEmployeeNo = computed(() => {
 
 async function submitCreate(close) {
   createErr.username = checkUsername()
-  createErr.name = createForm.name.trim() ? '' : '请输入姓名'
-  createErr.phone = PHONE_RE.test(createForm.phone.trim()) ? '' : '请输入 11 位有效手机号'
+  createErr.name = createForm.name.trim() ? '' : tr('user.needName')
+  createErr.phone = PHONE_RE.test(createForm.phone.trim()) ? '' : tr('user.needPhone')
   if (createErr.username || createErr.name || createErr.phone) return
 
   const payload = {
@@ -138,7 +147,7 @@ async function submitCreate(close) {
     password: createForm.password || '123456',
   }
   const res = await userApi.create(payload)
-  toast.ok(res.message || `账号创建成功，初始密码 ${payload.password}`)
+  toast.ok(tr('user.createOk', { pwd: payload.password }) || res.message)
   // 本地插入草稿行，把密码字段剔掉（真实后端也不会回传密码）
   const { password, ...safe } = payload
   t.unshiftLocal({
@@ -166,17 +175,19 @@ function openEdit(row) {
   editVisible.value = true
 }
 
+const lastManagerTip = computed(() => tr('user.lastManagerTip'))
+
 function onEditRoleChange() {
   // 实时提示，而不是等点保存才报错，店长一眼就知道为什么不能改
   const onlyManager = editRow.value?.role === 'manager' && managerCount.value <= 1
-  editErr.role = onlyManager && editForm.role !== 'manager' ? '这是最后一位店长账号，不能降级为收银员' : ''
+  editErr.role = onlyManager && editForm.role !== 'manager' ? lastManagerTip.value : ''
 }
 
 async function submitEdit(close) {
-  editErr.name = editForm.name.trim() ? '' : '请输入姓名'
-  editErr.phone = PHONE_RE.test(editForm.phone.trim()) ? '' : '请输入 11 位有效手机号'
+  editErr.name = editForm.name.trim() ? '' : tr('user.needName')
+  editErr.phone = PHONE_RE.test(editForm.phone.trim()) ? '' : tr('user.needPhone')
   const onlyManager = editRow.value?.role === 'manager' && managerCount.value <= 1
-  editErr.role = onlyManager && editForm.role !== 'manager' ? '这是最后一位店长账号，不能降级为收银员' : ''
+  editErr.role = onlyManager && editForm.role !== 'manager' ? lastManagerTip.value : ''
   if (editErr.name || editErr.phone || editErr.role) return
 
   const patch = {
@@ -187,7 +198,7 @@ async function submitEdit(close) {
     remark: editForm.remark.trim(),
   }
   const res = await userApi.update(editRow.value.id, patch)
-  toast.ok(res.message || '账号信息已更新')
+  toast.ok(tr('user.updatedOk') || res.message)
   t.patchLocal(editRow.value.id, patch)
   close()
 }
@@ -198,24 +209,24 @@ const pwdResult = ref('')
 
 async function resetPassword(row) {
   const ok = await confirm({
-    title: `重置「${row.name}」的登录密码`,
-    content: '重置后原密码立即失效，新密码为初始密码，请提醒该员工首次登录后自行修改。',
-    confirmText: '确认重置',
+    title: tr('user.resetTitle', { name: row.name }),
+    content: tr('user.resetConfirm'),
+    confirmText: tr('user.resetConfirmText'),
   })
   if (!ok) return
   const res = await userApi.resetPassword(row.id)
   pwdResult.value = res.data?.password || '123456'
   pwdVisible.value = true
-  toast.ok(res.message || '密码已重置')
+  toast.ok(tr('user.resetOk') || res.message)
 }
 
 async function copyPassword() {
   try {
     await navigator.clipboard.writeText(pwdResult.value)
-    toast.ok('新密码已复制到剪贴板')
+    toast.ok(tr('user.copiedOk'))
   } catch {
     // 非 https / 无权限时浏览器会拒绝，提示手动复制即可
-    toast.warning('浏览器不允许自动复制，请手动选中复制')
+    toast.warning(tr('user.copyDenied'))
   }
 }
 
@@ -226,34 +237,32 @@ function isSelf(row) {
 
 async function toggleStatus(row) {
   if (isSelf(row)) {
-    toast.warning('不能停用当前登录的账号')
+    toast.warning(tr('user.cannotDisableSelf'))
     return
   }
   const toDisable = row.status === 'active'
   const ok = await confirm({
-    title: `${toDisable ? '停用' : '启用'}账号「${row.name}」`,
-    content: toDisable
-      ? '停用后该账号无法登录，但其历史订单与操作日志会完整保留。'
-      : '启用后该账号可以立即恢复登录。',
-    confirmText: toDisable ? '确认停用' : '确认启用',
+    title: tr('user.toggleTitle', { action: toDisable ? tr('user.disableAction') : tr('user.enableAction'), name: row.name }),
+    content: toDisable ? tr('user.disableConfirmLong') : tr('user.enableConfirmLong'),
+    confirmText: toDisable ? tr('common.disable') : tr('common.enable'),
     danger: toDisable,
   })
   if (!ok) return
   const res = toDisable ? await userApi.disable(row.id) : await userApi.enable(row.id)
-  toast.ok(res.message || (toDisable ? '账号已停用' : '账号已启用'))
+  toast.ok(tr(toDisable ? 'user.disableOk' : 'user.enableOk') || res.message)
   t.patchLocal(row.id, { status: toDisable ? 'disabled' : 'active' })
 }
 
 async function removeUser(row) {
   const ok = await confirm({
-    title: `删除账号「${row.name}」`,
-    content: '删除属于高风险操作，账号将被停用并无法登录，其历史订单与操作日志会保留。',
-    confirmText: '确认删除',
+    title: tr('user.deleteTitle', { name: row.name }),
+    content: tr('user.deleteConfirm'),
+    confirmText: tr('common.confirm'),
     danger: true,
   })
   if (!ok) return
   // 删除 → 停用：保证历史订单与日志仍能关联到操作人
-  toast.info('账号已停用，历史订单与日志保留')
+  toast.info(tr('user.deleteOk'))
   t.patchLocal(row.id, { status: 'disabled' })
 }
 </script>
@@ -261,14 +270,14 @@ async function removeUser(row) {
 <template>
   <PageShell>
     <PageHeader
-      title="用户管理"
-      desc="仅店长可创建账号、重置密码与停用账号；收银员账号只能用于收银与会员业务"
+      :title="$t('user.title')"
+      :desc="$t('user.desc')"
       icon="users"
     >
       <template #actions>
-        <AppButton icon="shieldCheck" @click="openMatrix">角色权限对照表</AppButton>
+        <AppButton icon="shieldCheck" @click="openMatrix">{{ $t('user.roleMatrix') }}</AppButton>
         <AppButton variant="primary" icon="plus" :disabled="!isManager" @click="openCreate">
-          新增账号
+          {{ $t('user.newUser') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -277,8 +286,8 @@ async function removeUser(row) {
     <div v-if="!isManager" class="card">
       <Empty
         icon="lock"
-        title="当前角色无权查看用户管理"
-        desc="用户管理属于店长专属模块，请使用店长账号（admin）登录后访问。"
+        :title="$t('user.noPermissionTitle')"
+        :desc="$t('user.noPermissionDesc')"
         :size="92"
       />
     </div>
@@ -287,31 +296,31 @@ async function removeUser(row) {
       <!-- 筛选栏 -->
       <div class="card card-pad">
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
-          <FormField label="关键字" class="col-span-2 md:col-span-1 xl:col-span-2">
+          <FormField :label="$t('common.keyword')" class="col-span-2 md:col-span-1 xl:col-span-2">
             <SearchInput
               v-model="query.keyword"
-              placeholder="姓名 / 账号 / 工号"
+              :placeholder="$t('user.keywordPlaceholder')"
               width="100%"
               @search="t.reload()"
               @enter="t.reload()"
             />
           </FormField>
-          <FormField label="角色">
+          <FormField :label="$t('user.role')">
             <select v-model="query.role" class="input w-full">
-              <option value="">全部角色</option>
-              <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ r.label }}</option>
+              <option value="">{{ $t('user.allRoles') }}</option>
+              <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ $t(r.labelKey) }}</option>
             </select>
           </FormField>
-          <FormField label="账号状态">
+          <FormField :label="$t('user.accountStatus')">
             <select v-model="query.status" class="input w-full">
-              <option value="">全部状态</option>
-              <option value="active">正常</option>
-              <option value="disabled">已停用</option>
+              <option value="">{{ $t('user.allStatus') }}</option>
+              <option value="active">{{ $t('user.active') }}</option>
+              <option value="disabled">{{ $t('user.disabled') }}</option>
             </select>
           </FormField>
           <div class="flex items-center gap-2">
-            <AppButton variant="primary" icon="search" @click="t.reload()">查询</AppButton>
-            <AppButton icon="refresh" @click="t.reset()">重置</AppButton>
+            <AppButton variant="primary" icon="search" @click="t.reload()">{{ $t('common.search') }}</AppButton>
+            <AppButton icon="refresh" @click="t.reset()">{{ $t('common.reset') }}</AppButton>
           </div>
         </div>
       </div>
@@ -320,13 +329,12 @@ async function removeUser(row) {
       <div class="card mt-3">
         <div class="panel-head">
           <div>
-            <div class="text-[14px] font-semibold">门店账号</div>
+            <div class="text-[14px] font-semibold">{{ $t('user.storeAccounts') }}</div>
             <div class="text-[11.5px] text-text-3 mt-0.5">
-              共 {{ total }} 个账号 · 本页店长 {{ summary.manager }} / 收银员 {{ summary.cashier }} · 已停用
-              {{ summary.disabled }}
+              {{ $t('user.summary', { total, manager: summary.manager, cashier: summary.cashier, disabled: summary.disabled }) }}
             </div>
           </div>
-          <div class="text-[11.5px] text-text-3">初始密码统一为 123456，员工首次登录后应自行修改</div>
+          <div class="text-[11.5px] text-text-3">{{ $t('user.initialPasswordTip') }}</div>
         </div>
 
         <DataTable
@@ -334,8 +342,8 @@ async function removeUser(row) {
           :list="list"
           :loading="loading"
           row-key="id"
-          empty-text="没有匹配的账号"
-          empty-hint="换个关键字，或点击「新增账号」为门店开一个新工号"
+          :empty-text="$t('user.emptyList')"
+          :empty-hint="$t('user.emptyListHint')"
         >
           <template #cell-employeeNo="{ row }">
             <span class="font-mono text-[12.5px]">{{ row.employeeNo }}</span>
@@ -344,7 +352,7 @@ async function removeUser(row) {
           <template #cell-username="{ row }">
             <span class="flex items-center gap-1.5">
               <span class="font-mono text-[12.5px]">{{ row.username }}</span>
-              <span v-if="isSelf(row)" class="badge badge-accent">当前登录</span>
+              <span v-if="isSelf(row)" class="badge badge-accent">{{ $t('user.current') }}</span>
             </span>
           </template>
 
@@ -362,25 +370,25 @@ async function removeUser(row) {
 
           <template #cell-lastLoginAt="{ row }">
             <span v-if="row.lastLoginAt" :title="fromNow(row.lastLoginAt)">{{ row.lastLoginAt }}</span>
-            <span v-else class="text-text-3">从未登录</span>
+            <span v-else class="text-text-3">{{ $t('user.neverLoggedIn') }}</span>
           </template>
 
           <template #cell-actions="{ row }">
             <div class="flex items-center justify-end gap-1">
-              <AppButton size="sm" variant="ghost" icon="edit" @click.stop="openEdit(row)">编辑</AppButton>
-              <AppButton size="sm" variant="ghost" icon="key" @click.stop="resetPassword(row)">重置密码</AppButton>
+              <AppButton size="sm" variant="ghost" icon="edit" @click.stop="openEdit(row)">{{ $t('user.editAction') }}</AppButton>
+              <AppButton size="sm" variant="ghost" icon="key" @click.stop="resetPassword(row)">{{ $t('user.resetAction') }}</AppButton>
               <AppButton
                 size="sm"
                 variant="ghost"
                 :icon="row.status === 'active' ? 'pause' : 'play'"
                 :disabled="isSelf(row)"
-                :title="isSelf(row) ? '不能停用当前登录账号' : row.status === 'active' ? '停用该账号' : '启用该账号'"
+                :title="isSelf(row) ? $t('user.cannotDisableSelfTip') : row.status === 'active' ? $t('user.disableAccountTip') : $t('user.enableAccountTip')"
                 @click.stop="toggleStatus(row)"
               >
-                {{ row.status === 'active' ? '停用' : '启用' }}
+                {{ row.status === 'active' ? $t('user.disableAction') : $t('user.enableAction') }}
               </AppButton>
               <AppButton size="sm" variant="danger-soft" icon="trash" :disabled="isSelf(row)" @click.stop="removeUser(row)">
-                删除
+                {{ $t('user.deleteAction') }}
               </AppButton>
             </div>
           </template>
@@ -393,13 +401,13 @@ async function removeUser(row) {
     </template>
 
     <!-- 角色权限对照表 -->
-    <AppModal v-model="matrixVisible" title="角色权限对照表" subtitle="来源：GET /api/settings 的 roleMatrix" width="620">
+    <AppModal v-model="matrixVisible" :title="$t('user.roleMatrix')" :subtitle="$t('user.matrixSubtitle')" width="620">
       <table class="table-flat">
         <thead>
           <tr>
-            <th>功能模块</th>
-            <th class="text-center" style="width: 110px">收银员</th>
-            <th class="text-center" style="width: 110px">店长</th>
+            <th>{{ $t('user.moduleColumn') }}</th>
+            <th class="text-center" style="width: 110px">{{ $t('user.cashierColumn') }}</th>
+            <th class="text-center" style="width: 110px">{{ $t('user.managerColumn') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -426,85 +434,85 @@ async function removeUser(row) {
         </tbody>
       </table>
       <div class="mt-3 text-[11.5px] text-text-3 leading-relaxed">
-        权限只影响菜单可见性与页面访问，不改变历史数据归属。收银员仅能查看本人订单，店长可查看全部门店数据。
+        {{ $t('user.matrixTip') }}
       </div>
       <template #footer="{ close }">
-        <AppButton variant="primary" @click="close">我知道了</AppButton>
+        <AppButton variant="primary" @click="close">{{ $t('common.ok') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 新增账号 -->
-    <AppModal v-model="createVisible" title="新增账号" subtitle="为门店新员工开通后台登录账号" width="560">
+    <AppModal v-model="createVisible" :title="$t('user.newUser')" :subtitle="$t('user.createSubtitle')" width="560">
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="登录账号" required :error="createErr.username" hint="3-20 位英文、数字或下划线">
+        <FormField :label="$t('user.usernameField')" required :error="createErr.username" :hint="$t('user.usernameHint')">
           <input
             v-model="createForm.username"
             class="input w-full font-mono"
-            placeholder="如 cashier05"
+            :placeholder="$t('user.usernamePlaceholder')"
             @blur="createErr.username = checkUsername()"
           />
         </FormField>
-        <FormField label="姓名" required :error="createErr.name">
-          <input v-model="createForm.name" class="input w-full" placeholder="请输入真实姓名" />
+        <FormField :label="$t('user.name')" required :error="createErr.name">
+          <input v-model="createForm.name" class="input w-full" :placeholder="$t('user.namePlaceholder')" />
         </FormField>
-        <FormField label="手机号" required :error="createErr.phone">
-          <input v-model="createForm.phone" class="input w-full" maxlength="11" placeholder="11 位手机号" />
+        <FormField :label="$t('user.phone')" required :error="createErr.phone">
+          <input v-model="createForm.phone" class="input w-full" maxlength="11" :placeholder="$t('user.phonePlaceholder')" />
         </FormField>
-        <FormField label="角色" hint="收银员只能进入收银台、订单与会员">
+        <FormField :label="$t('user.role')" :hint="$t('user.roleHint')">
           <select v-model="createForm.role" class="input w-full">
-            <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ r.label }}</option>
+            <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ $t(r.labelKey) }}</option>
           </select>
         </FormField>
-        <FormField label="工号" hint="按角色自动编号">
+        <FormField :label="$t('user.employeeNo')" :hint="$t('user.employeeNoHint')">
           <input class="input w-full font-mono" :value="nextEmployeeNo" disabled />
         </FormField>
-        <FormField label="初始密码" hint="可修改，默认 123456">
+        <FormField :label="$t('user.initialPassword')" :hint="$t('user.passwordHint')">
           <input v-model="createForm.password" class="input w-full font-mono" />
         </FormField>
       </div>
       <div class="mt-3 text-[11.5px] text-text-3 leading-relaxed">
-        创建后该账号即可使用初始密码登录，请提醒员工首次登录后修改密码。
+        {{ $t('user.createTip') }}
       </div>
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="check" @click="submitCreate(close)">创建账号</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="check" @click="submitCreate(close)">{{ $t('user.createAccount') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 编辑账号 -->
     <AppModal
       v-model="editVisible"
-      title="编辑账号"
+      :title="$t('user.editUser')"
       :subtitle="editRow ? `${editRow.employeeNo} · ${editRow.username}` : ''"
       width="560"
     >
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="账号">
+        <FormField :label="$t('user.username')">
           <input class="input w-full font-mono" :value="editRow?.username" disabled />
         </FormField>
-        <FormField label="姓名" required :error="editErr.name">
+        <FormField :label="$t('user.name')" required :error="editErr.name">
           <input v-model="editForm.name" class="input w-full" />
         </FormField>
-        <FormField label="手机号" required :error="editErr.phone">
+        <FormField :label="$t('user.phone')" required :error="editErr.phone">
           <input v-model="editForm.phone" class="input w-full" maxlength="11" />
         </FormField>
-        <FormField label="角色" :error="editErr.role" hint="降级为收银员后该账号将无法访问管理模块">
+        <FormField :label="$t('user.role')" :error="editErr.role" :hint="$t('user.roleEditHint')">
           <select v-model="editForm.role" class="input w-full" @change="onEditRoleChange">
-            <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ r.label }}</option>
+            <option v-for="r in ROLES" :key="r.value" :value="r.value">{{ $t(r.labelKey) }}</option>
           </select>
         </FormField>
-        <FormField label="备注" span="2">
-          <textarea v-model="editForm.remark" class="w-full" rows="2" placeholder="如：早班收银、兼职等" />
+        <FormField :label="$t('common.remark')" span="2">
+          <textarea v-model="editForm.remark" class="w-full" rows="2" :placeholder="$t('user.remarkPlaceholder')" />
         </FormField>
       </div>
       <template #footer="{ close }">
-        <AppButton @click="close">取消</AppButton>
-        <AppButton variant="primary" icon="save" :disabled="!!editErr.role" @click="submitEdit(close)">保存</AppButton>
+        <AppButton @click="close">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="primary" icon="save" :disabled="!!editErr.role" @click="submitEdit(close)">{{ $t('user.saveAction') }}</AppButton>
       </template>
     </AppModal>
 
     <!-- 重置密码结果 -->
-    <AppModal v-model="pwdVisible" title="密码已重置" subtitle="请把新密码告知该员工" width="440">
+    <AppModal v-model="pwdVisible" :title="$t('user.resetOk')" :subtitle="$t('user.newPasswordTip')" width="440">
       <div class="flex flex-col items-center gap-3 py-2">
         <div
           class="flex items-center justify-center rounded-full"
@@ -512,17 +520,17 @@ async function removeUser(row) {
         >
           <Icon name="key" :size="22" />
         </div>
-        <div class="text-[12.5px] text-text-3">新的登录密码</div>
+        <div class="text-[12.5px] text-text-3">{{ $t('user.newPasswordLabel') }}</div>
         <div
           class="px-5 py-2.5 rounded-md font-mono text-[20px] font-semibold tracking-[0.2em]"
           :style="{ background: 'var(--c-surface-2)', border: '1px solid var(--c-line)' }"
         >
           {{ pwdResult }}
         </div>
-        <AppButton icon="copy" @click="copyPassword">复制密码</AppButton>
+        <AppButton icon="copy" @click="copyPassword">{{ $t('user.copyPassword') }}</AppButton>
       </div>
       <template #footer="{ close }">
-        <AppButton variant="primary" @click="close">完成</AppButton>
+        <AppButton variant="primary" @click="close">{{ $t('user.doneAction') }}</AppButton>
       </template>
     </AppModal>
   </PageShell>
