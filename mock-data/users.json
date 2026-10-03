@@ -1,0 +1,67 @@
+[
+  {
+    "id": "U001",
+    "username": "admin",
+    "password": "123456",
+    "name": "张国强",
+    "role": "manager",
+    "roleName": "店长",
+    "phone": "13800001111",
+    "employeeNo": "M001",
+    "status": "active",
+    "lastLoginAt": "2026-03-20 09:30:00",
+    "createdAt": "2024-11-05 00:00:00"
+  },
+  {
+    "id": "U002",
+    "username": "cashier01",
+    "password": "123456",
+    "name": "李小燕",
+    "role": "cashier",
+    "roleName": "收银员",
+    "phone": "13800002222",
+    "employeeNo": "C001",
+    "status": "active",
+    "lastLoginAt": "2026-03-20 08:30:00",
+    "createdAt": "2025-01-24 00:00:00"
+  },
+  {
+    "id": "U003",
+    "username": "cashier02",
+    "password": "123456",
+    "name": "王海涛",
+    "role": "cashier",
+    "roleName": "收银员",
+    "phone": "13800003333",
+    "employeeNo": "C002",
+    "status": "active",
+    "lastLoginAt": "2026-03-19 00:00:00",
+    "createdAt": "2025-03-25 00:00:00"
+  },
+  {
+    "id": "U004",
+    "username": "cashier03",
+    "password": "123456",
+    "name": "陈美玲",
+    "role": "cashier",
+    "roleName": "收银员",
+    "phone": "13800004444",
+    "employeeNo": "C003",
+    "status": "disabled",
+    "lastLoginAt": "2026-02-08 00:00:00",
+    "createdAt": "2025-05-24 00:00:00"
+  },
+  {
+    "id": "U005",
+    "username": "cashier04",
+    "password": "123456",
+    "name": "刘志明",
+    "role": "cashier",
+    "roleName": "收银员",
+    "phone": "13800005555",
+    "employeeNo": "C004",
+    "status": "active",
+    "lastLoginAt": "2026-03-17 00:00:00",
+    "createdAt": "2025-09-21 00:00:00"
+  }
+]

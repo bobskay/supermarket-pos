@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+# 触发时机：推送到 main 分支，或在 Actions 页面手动触发
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 需要这些权限才能发布 Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个部署任务，避免并发推送互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建静态站点
+        # vite.config.js 会读取 GITHUB_REPOSITORY 自动推导 /<仓库名>/ 作为 base
+        run: pnpm run build
+
+      - name: 关闭 Jekyll 处理（下划线开头的文件会被 Jekyll 忽略）
+        run: touch dist/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

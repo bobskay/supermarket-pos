@@ -1,0 +1,544 @@
+@import 'tailwindcss';
+@import './theme.css';
+
+/* Tailwind 4 的暗色变体挂到 data-theme 上，方便个别地方写 dark:xxx
+   （html[data-theme='midnight'] 自身与它的所有后代都算暗色） */
+@custom-variant dark (&:where([data-theme='midnight'], [data-theme='midnight'] *));
+
+/* 主题变量随 data-theme 切换时的过渡（只过渡颜色，不动布局，避免抖动） */
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color 0.22s ease, border-color 0.22s ease, color 0.15s ease;
+}
+
+@layer base {
+  * {
+    border-color: var(--c-line);
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4, h5 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* 表单控件统一到扁平风格 */
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  input,
+  select,
+  textarea {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--c-text-3);
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--c-line-strong);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 16%, transparent);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background: var(--c-surface-3);
+    color: var(--c-text-3);
+    cursor: not-allowed;
+  }
+
+  select {
+    appearance: none;
+    padding-right: 26px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--c-text-3) 50%),
+      linear-gradient(135deg, var(--c-text-3) 50%, transparent 50%);
+    background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  /* 表格：扁平、无竖线、行悬停 */
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+  }
+
+  th {
+    font-weight: 500;
+    text-align: left;
+    color: var(--c-text-2);
+    background: var(--c-surface-2);
+    white-space: nowrap;
+  }
+
+  th,
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--c-line);
+  }
+
+  tbody tr:hover td {
+    background: var(--c-hover);
+  }
+
+  /* 滚动条：细、无按钮 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--c-scroll-thumb);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-line-strong);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--c-primary) 24%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 1px;
+  }
+}
+
+/* ==========================================================================
+   组件层：跨页面复用的原子类（扁平化，无圆角装饰，无渐变）
+   ========================================================================== */
+@layer components {
+  /* ---------------------------------- 容器 ---------------------------------- */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 8px;
+  }
+  .card-pad {
+    padding: 16px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--c-line);
+  }
+
+  /* ---------------------------------- 按钮 ---------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    user-select: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .btn-sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12.5px;
+    border-radius: 6px;
+  }
+  .btn-lg {
+    height: 42px;
+    padding: 0 20px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .btn-primary {
+    background: var(--c-primary);
+    color: var(--c-text-on-brand);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--c-primary-hover);
+  }
+  .btn-primary:active:not(:disabled) {
+    background: var(--c-primary-active);
+  }
+  .btn-soft {
+    background: var(--c-primary-soft);
+    color: var(--c-primary);
+  }
+  .btn-soft:hover:not(:disabled) {
+    background: var(--c-primary-soft-2);
+  }
+  .btn-default {
+    background: var(--c-surface);
+    border-color: var(--c-line);
+    color: var(--c-text);
+  }
+  .btn-default:hover:not(:disabled) {
+    border-color: var(--c-line-strong);
+    background: var(--c-surface-2);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--c-text-2);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--c-hover);
+    color: var(--c-text);
+  }
+  .btn-danger {
+    background: var(--c-danger);
+    color: #fff;
+  }
+  .btn-danger:hover:not(:disabled) {
+    filter: brightness(0.94);
+  }
+  .btn-danger-soft {
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+  }
+  .btn-success {
+    background: var(--c-success);
+    color: #fff;
+  }
+  .btn-success:hover:not(:disabled) {
+    filter: brightness(0.94);
+  }
+  .btn-block {
+    width: 100%;
+  }
+
+  /* ---------------------------------- 标签 ---------------------------------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .badge-primary { background: var(--c-primary-soft); color: var(--c-primary); }
+  .badge-success { background: var(--c-success-soft); color: var(--c-success); }
+  .badge-warning { background: var(--c-warning-soft); color: var(--c-warning); }
+  .badge-danger  { background: var(--c-danger-soft);  color: var(--c-danger); }
+  .badge-info    { background: var(--c-info-soft);    color: var(--c-info); }
+  .badge-purple  { background: var(--c-purple-soft);  color: var(--c-purple); }
+  .badge-accent  { background: var(--c-accent-soft);  color: var(--c-accent); }
+  .badge-muted   { background: var(--c-surface-3);    color: var(--c-text-2); }
+
+  /* ---------------------------------- 表单 ---------------------------------- */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field-label {
+    font-size: 13px;
+    color: var(--c-text-2);
+    font-weight: 500;
+  }
+  .field-label .req {
+    color: var(--c-danger);
+    margin-left: 2px;
+  }
+  .field-hint {
+    font-size: 12px;
+    color: var(--c-text-3);
+  }
+  .field-error {
+    font-size: 12px;
+    color: var(--c-danger);
+  }
+  .input {
+    height: 34px;
+  }
+  .input-lg {
+    height: 42px;
+    font-size: 15px;
+  }
+  .is-error {
+    border-color: var(--c-danger) !important;
+  }
+
+  /* 开关 */
+  .switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--c-line-strong);
+    transition: background-color 0.18s ease;
+    flex: none;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.18s ease;
+  }
+  .switch.is-on {
+    background: var(--c-primary);
+  }
+  .switch.is-on::after {
+    transform: translateX(16px);
+  }
+
+  /* ---------------------------------- 指标卡 ---------------------------------- */
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 8px;
+  }
+  .kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--c-text-2);
+  }
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    line-height: 1.1;
+  }
+  .kpi-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--c-text-3);
+  }
+
+  /* ---------------------------------- 表格 ---------------------------------- */
+  .table-wrap {
+    overflow: auto;
+    border-radius: 8px;
+  }
+  .table-flat thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid var(--c-line);
+    font-size: 12.5px;
+    letter-spacing: 0.2px;
+  }
+  .table-flat tbody td {
+    font-size: 13.5px;
+  }
+  .table-flat tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+  .price {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  /* 空状态 */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 16px;
+    color: var(--c-text-3);
+    text-align: center;
+  }
+
+  /* 分段控件 */
+  .seg {
+    display: inline-flex;
+    padding: 2px;
+    background: var(--c-surface-3);
+    border-radius: 6px;
+    gap: 2px;
+  }
+  .seg-item {
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--c-text-2);
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .seg-item:hover {
+    color: var(--c-text);
+  }
+  .seg-item.is-active {
+    background: var(--c-surface);
+    color: var(--c-primary);
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 骨架屏 */
+  .skeleton {
+    background: var(--c-skeleton);
+    background-size: 400% 100%;
+    animation: sk 1.3s ease infinite;
+    border-radius: 6px;
+  }
+  @keyframes sk {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--c-line);
+    border: none;
+    margin: 0;
+  }
+}
+
+/* ==========================================================================
+   工具层
+   ========================================================================== */
+@utility scroll-thin {
+  scrollbar-width: thin;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 小票打印区（挂单 / 结算小票预览） */
+@utility receipt-paper {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.anim-fade { animation: fade-in 0.18s ease both; }
+.anim-slide { animation: slide-up 0.2s ease both; }
+.anim-pop { animation: pop-in 0.16s ease both; }
+.anim-toast { animation: toast-in 0.22s ease both; }
+
+/* 打印样式：只打印小票 */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="clean">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>超市收银系统</title>
+    <script>
+      // 首屏前应用主题，避免闪白
+      try {
+        var t = localStorage.getItem('pos.theme')
+        if (t) document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,908 @@
+{
+  "updatedAt": "2026-03-20 10:30:00",
+  "trend": [
+    {
+      "date": "2026-02-19",
+      "amount": 1504.38,
+      "orders": 11,
+      "cost": 1000.5,
+      "profit": 503.88
+    },
+    {
+      "date": "2026-02-20",
+      "amount": 1896.37,
+      "orders": 12,
+      "cost": 1249,
+      "profit": 647.37
+    },
+    {
+      "date": "2026-02-21",
+      "amount": 2950.61,
+      "orders": 14,
+      "cost": 1921.25,
+      "profit": 1029.36
+    },
+    {
+      "date": "2026-02-22",
+      "amount": 2230.51,
+      "orders": 12,
+      "cost": 1455.9,
+      "profit": 774.61
+    },
+    {
+      "date": "2026-02-23",
+      "amount": 711.22,
+      "orders": 7,
+      "cost": 440.25,
+      "profit": 270.97
+    },
+    {
+      "date": "2026-02-24",
+      "amount": 1628.5,
+      "orders": 10,
+      "cost": 1027.2,
+      "profit": 601.3
+    },
+    {
+      "date": "2026-02-25",
+      "amount": 1139.66,
+      "orders": 10,
+      "cost": 702.8,
+      "profit": 436.86
+    },
+    {
+      "date": "2026-02-26",
+      "amount": 1669.48,
+      "orders": 9,
+      "cost": 1139.15,
+      "profit": 530.33
+    },
+    {
+      "date": "2026-02-27",
+      "amount": 908.13,
+      "orders": 8,
+      "cost": 583.05,
+      "profit": 325.08
+    },
+    {
+      "date": "2026-02-28",
+      "amount": 2764.81,
+      "orders": 15,
+      "cost": 1838.05,
+      "profit": 926.76
+    },
+    {
+      "date": "2026-03-01",
+      "amount": 1890.56,
+      "orders": 12,
+      "cost": 1253,
+      "profit": 637.56
+    },
+    {
+      "date": "2026-03-02",
+      "amount": 1813.41,
+      "orders": 10,
+      "cost": 1190.9,
+      "profit": 622.51
+    },
+    {
+      "date": "2026-03-03",
+      "amount": 1210.01,
+      "orders": 13,
+      "cost": 747.85,
+      "profit": 462.16
+    },
+    {
+      "date": "2026-03-04",
+      "amount": 2434.99,
+      "orders": 13,
+      "cost": 1631,
+      "profit": 803.99
+    },
+    {
+      "date": "2026-03-05",
+      "amount": 1900.25,
+      "orders": 12,
+      "cost": 1206.1,
+      "profit": 694.15
+    },
+    {
+      "date": "2026-03-06",
+      "amount": 1707.87,
+      "orders": 10,
+      "cost": 1122.8,
+      "profit": 585.07
+    },
+    {
+      "date": "2026-03-07",
+      "amount": 1665.66,
+      "orders": 13,
+      "cost": 1093.9,
+      "profit": 571.76
+    },
+    {
+      "date": "2026-03-08",
+      "amount": 3500.53,
+      "orders": 15,
+      "cost": 2290.6,
+      "profit": 1209.93
+    },
+    {
+      "date": "2026-03-09",
+      "amount": 1977.5,
+      "orders": 13,
+      "cost": 1302.55,
+      "profit": 674.95
+    },
+    {
+      "date": "2026-03-10",
+      "amount": 1099.15,
+      "orders": 10,
+      "cost": 711,
+      "profit": 388.15
+    },
+    {
+      "date": "2026-03-11",
+      "amount": 843.95,
+      "orders": 7,
+      "cost": 540.9,
+      "profit": 303.05
+    },
+    {
+      "date": "2026-03-12",
+      "amount": 1830.87,
+      "orders": 10,
+      "cost": 1200.9,
+      "profit": 629.97
+    },
+    {
+      "date": "2026-03-13",
+      "amount": 2551.1,
+      "orders": 12,
+      "cost": 1685.75,
+      "profit": 865.35
+    },
+    {
+      "date": "2026-03-14",
+      "amount": 2285.23,
+      "orders": 12,
+      "cost": 1475.3,
+      "profit": 809.93
+    },
+    {
+      "date": "2026-03-15",
+      "amount": 4014.97,
+      "orders": 19,
+      "cost": 2621.25,
+      "profit": 1393.72
+    },
+    {
+      "date": "2026-03-16",
+      "amount": 2002.12,
+      "orders": 12,
+      "cost": 1293.1,
+      "profit": 709.02
+    },
+    {
+      "date": "2026-03-17",
+      "amount": 1510.53,
+      "orders": 11,
+      "cost": 1004.2,
+      "profit": 506.33
+    },
+    {
+      "date": "2026-03-18",
+      "amount": 1841.02,
+      "orders": 10,
+      "cost": 1152.45,
+      "profit": 688.57
+    },
+    {
+      "date": "2026-03-19",
+      "amount": 2291.36,
+      "orders": 13,
+      "cost": 1506.6,
+      "profit": 784.76
+    },
+    {
+      "date": "2026-03-20",
+      "amount": 1637.61,
+      "orders": 11,
+      "cost": 1128.55,
+      "profit": 509.06
+    }
+  ],
+  "payStats": [
+    {
+      "method": "card",
+      "name": "储值卡",
+      "amount": 16552.83,
+      "count": 108
+    },
+    {
+      "method": "cash",
+      "name": "现金",
+      "amount": 15058.44,
+      "count": 104
+    },
+    {
+      "method": "wechat",
+      "name": "微信",
+      "amount": 14125.68,
+      "count": 115
+    },
+    {
+      "method": "alipay",
+      "name": "支付宝",
+      "amount": 11675.41,
+      "count": 84
+    }
+  ],
+  "productRank": [
+    {
+      "productId": "P0020",
+      "name": "蒙牛特仑苏礼盒",
+      "barcode": "6900000002740",
+      "qty": 86,
+      "amount": 5151.4,
+      "unit": "箱"
+    },
+    {
+      "productId": "P0040",
+      "name": "金龙鱼调和油5L",
+      "barcode": "6900000005480",
+      "qty": 60,
+      "amount": 4794,
+      "unit": "桶"
+    },
+    {
+      "productId": "P0041",
+      "name": "福临门东北大米10kg",
+      "barcode": "6900000005617",
+      "qty": 64,
+      "amount": 4473.6,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0049",
+      "name": "海飞丝洗发水400ml",
+      "barcode": "6900000006713",
+      "qty": 67,
+      "amount": 3276.3,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0031",
+      "name": "长城干红葡萄酒",
+      "barcode": "6900000004247",
+      "qty": 41,
+      "amount": 3198,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0016",
+      "name": "黄牛腱子肉",
+      "barcode": "6900000002192",
+      "qty": 43.5,
+      "amount": 2470.8,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0038",
+      "name": "三只松鼠每日坚果",
+      "barcode": "6900000005206",
+      "qty": 79,
+      "amount": 2362.1,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0047",
+      "name": "蓝月亮洗衣液3kg",
+      "barcode": "6900000006439",
+      "qty": 52,
+      "amount": 2230.8,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0022",
+      "name": "安佳淡奶油1L",
+      "barcode": "6900000003014",
+      "qty": 53,
+      "amount": 2226,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0014",
+      "name": "清远走地鸡",
+      "barcode": "6900000001918",
+      "qty": 71,
+      "amount": 2044.8,
+      "unit": "只"
+    },
+    {
+      "productId": "P0055",
+      "name": "维达卷纸10卷",
+      "barcode": "6900000007535",
+      "qty": 60,
+      "amount": 1674,
+      "unit": "提"
+    },
+    {
+      "productId": "P0021",
+      "name": "光明酸奶100g*8",
+      "barcode": "6900000002877",
+      "qty": 73,
+      "amount": 1664.4,
+      "unit": "排"
+    },
+    {
+      "productId": "P0039",
+      "name": "徐福记酥心糖",
+      "barcode": "6900000005343",
+      "qty": 58,
+      "amount": 1154.2,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0013",
+      "name": "新鲜猪肋排",
+      "barcode": "6900000001781",
+      "qty": 33,
+      "amount": 1115.4,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0056",
+      "name": "清风抽纸3层6包",
+      "barcode": "6900000007672",
+      "qty": 49,
+      "amount": 1073.1,
+      "unit": "提"
+    },
+    {
+      "productId": "P0058",
+      "name": "威猛先生洁厕灵",
+      "barcode": "6900000007946",
+      "qty": 64,
+      "amount": 992,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0053",
+      "name": "不锈钢衣架10只",
+      "barcode": "6900000007261",
+      "qty": 71,
+      "amount": 986.9,
+      "unit": "把"
+    },
+    {
+      "productId": "P0018",
+      "name": "鲜鱿鱼",
+      "barcode": "6900000002466",
+      "qty": 33,
+      "amount": 851.4,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0050",
+      "name": "高露洁牙膏140g",
+      "barcode": "6900000006850",
+      "qty": 52,
+      "amount": 826.8,
+      "unit": "支"
+    },
+    {
+      "productId": "P0061",
+      "name": "洁云厨房纸巾2卷",
+      "barcode": "6900000008357",
+      "qty": 59,
+      "amount": 796.5,
+      "unit": "提"
+    },
+    {
+      "productId": "P0044",
+      "name": "太太乐鸡精200g",
+      "barcode": "6900000006028",
+      "qty": 68,
+      "amount": 782,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0037",
+      "name": "德芙丝滑牛奶巧克力",
+      "barcode": "6900000005069",
+      "qty": 55,
+      "amount": 764.5,
+      "unit": "排"
+    },
+    {
+      "productId": "P0052",
+      "name": "5号碱性电池4粒",
+      "barcode": "6900000007124",
+      "qty": 58,
+      "amount": 690.2,
+      "unit": "板"
+    },
+    {
+      "productId": "P0054",
+      "name": "一次性手套100只",
+      "barcode": "6900000007398",
+      "qty": 50,
+      "amount": 645,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0015",
+      "name": "新鲜鸡腿",
+      "barcode": "6900000002055",
+      "qty": 38,
+      "amount": 600.4,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0011",
+      "name": "带皮五花肉",
+      "barcode": "6900000001507",
+      "qty": 23,
+      "amount": 572.7,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0057",
+      "name": "心相印手帕纸10包",
+      "barcode": "6900000007809",
+      "qty": 49,
+      "amount": 563.5,
+      "unit": "条"
+    },
+    {
+      "productId": "P0012",
+      "name": "猪前腿瘦肉",
+      "barcode": "6900000001644",
+      "qty": 25.5,
+      "amount": 555.9,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0042",
+      "name": "海天生抽500ml",
+      "barcode": "6900000005754",
+      "qty": 56,
+      "amount": 554.4,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0030",
+      "name": "青岛啤酒500ml",
+      "barcode": "6900000004110",
+      "qty": 85,
+      "amount": 552.5,
+      "unit": "罐"
+    },
+    {
+      "productId": "P0035",
+      "name": "洽洽香瓜子160g",
+      "barcode": "6900000004795",
+      "qty": 59,
+      "amount": 519.2,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0060",
+      "name": "加厚垃圾袋30只",
+      "barcode": "6900000008220",
+      "qty": 63,
+      "amount": 504,
+      "unit": "卷"
+    },
+    {
+      "productId": "P0023",
+      "name": "桃李吐司面包",
+      "barcode": "6900000003151",
+      "qty": 54,
+      "amount": 480.6,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0048",
+      "name": "舒肤佳香皂",
+      "barcode": "6900000006576",
+      "qty": 64,
+      "amount": 480,
+      "unit": "块"
+    },
+    {
+      "productId": "P0033",
+      "name": "乐事薯片原味",
+      "barcode": "6900000004521",
+      "qty": 56,
+      "amount": 476,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0010",
+      "name": "新鲜香菇",
+      "barcode": "6900000001370",
+      "qty": 46,
+      "amount": 455.4,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0043",
+      "name": "镇江香醋500ml",
+      "barcode": "6900000005891",
+      "qty": 56,
+      "amount": 442.4,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0034",
+      "name": "奥利奥夹心饼干",
+      "barcode": "6900000004658",
+      "qty": 39,
+      "amount": 425.1,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0059",
+      "name": "妙洁保鲜袋100只",
+      "barcode": "6900000008083",
+      "qty": 37,
+      "amount": 366.3,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0029",
+      "name": "康师傅冰红茶1L",
+      "barcode": "6900000003973",
+      "qty": 70,
+      "amount": 350,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0001",
+      "name": "红富士苹果",
+      "barcode": "6900000000137",
+      "qty": 37,
+      "amount": 325.6,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0024",
+      "name": "现烤红豆餐包",
+      "barcode": "6900000003288",
+      "qty": 48,
+      "amount": 312,
+      "unit": "个"
+    },
+    {
+      "productId": "P0046",
+      "name": "白砂糖400g",
+      "barcode": "6900000006302",
+      "qty": 49,
+      "amount": 289.1,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0032",
+      "name": "东鹏特饮500ml",
+      "barcode": "6900000004384",
+      "qty": 47,
+      "amount": 282,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0002",
+      "name": "海南香蕉",
+      "barcode": "6900000000274",
+      "qty": 50.5,
+      "amount": 277.75,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0036",
+      "name": "旺旺雪饼84g",
+      "barcode": "6900000004932",
+      "qty": 40,
+      "amount": 240,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0019",
+      "name": "伊利纯牛奶250ml",
+      "barcode": "6900000002603",
+      "qty": 54,
+      "amount": 205.2,
+      "unit": "盒"
+    },
+    {
+      "productId": "P0051",
+      "name": "得力中性笔0.5mm",
+      "barcode": "6900000006987",
+      "qty": 82,
+      "amount": 205,
+      "unit": "支"
+    },
+    {
+      "productId": "P0028",
+      "name": "雪碧冰爽柠檬味",
+      "barcode": "6900000003836",
+      "qty": 58,
+      "amount": 203,
+      "unit": "罐"
+    },
+    {
+      "productId": "P0008",
+      "name": "云南西红柿",
+      "barcode": "6900000001096",
+      "qty": 40.5,
+      "amount": 182.25,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0003",
+      "name": "武鸣沃柑",
+      "barcode": "6900000000411",
+      "qty": 26,
+      "amount": 179.4,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0027",
+      "name": "可口可乐330ml",
+      "barcode": "6900000003699",
+      "qty": 51,
+      "amount": 178.5,
+      "unit": "罐"
+    },
+    {
+      "productId": "P0004",
+      "name": "麒麟西瓜",
+      "barcode": "6900000000548",
+      "qty": 37,
+      "amount": 147.26,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0026",
+      "name": "怡宝纯净水1.5L",
+      "barcode": "6900000003562",
+      "qty": 45,
+      "amount": 135,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0005",
+      "name": "本地小青菜",
+      "barcode": "6900000000685",
+      "qty": 37,
+      "amount": 129.5,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0009",
+      "name": "白玉洋葱",
+      "barcode": "6900000001233",
+      "qty": 41.5,
+      "amount": 116.2,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0045",
+      "name": "中盐加碘食用盐",
+      "barcode": "6900000006165",
+      "qty": 57,
+      "amount": 114,
+      "unit": "袋"
+    },
+    {
+      "productId": "P0006",
+      "name": "山东黄瓜",
+      "barcode": "6900000000822",
+      "qty": 28.5,
+      "amount": 108.3,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0007",
+      "name": "沙地土豆",
+      "barcode": "6900000000959",
+      "qty": 28.5,
+      "amount": 82.65,
+      "unit": "斤"
+    },
+    {
+      "productId": "P0025",
+      "name": "农夫山泉550ml",
+      "barcode": "6900000003425",
+      "qty": 41,
+      "amount": 82,
+      "unit": "瓶"
+    },
+    {
+      "productId": "P0017",
+      "name": "散养土鸡蛋",
+      "barcode": "6900000002329",
+      "qty": 53,
+      "amount": 63.6,
+      "unit": "个"
+    }
+  ],
+  "categoryStats": [
+    {
+      "categoryId": "C06",
+      "name": "粮油调味",
+      "skuCount": 7,
+      "stockAmount": 2049.6,
+      "amount": 11449.5
+    },
+    {
+      "categoryId": "C03",
+      "name": "乳品烘焙",
+      "skuCount": 6,
+      "stockAmount": 2009.1,
+      "amount": 10039.6
+    },
+    {
+      "categoryId": "C07",
+      "name": "日用百货",
+      "skuCount": 8,
+      "stockAmount": 1044.9,
+      "amount": 9341
+    },
+    {
+      "categoryId": "C02",
+      "name": "肉禽蛋品",
+      "skuCount": 8,
+      "stockAmount": 3463.95,
+      "amount": 8275
+    },
+    {
+      "categoryId": "C08",
+      "name": "清洁纸品",
+      "skuCount": 7,
+      "stockAmount": 279,
+      "amount": 5969.4
+    },
+    {
+      "categoryId": "C05",
+      "name": "休闲零食",
+      "skuCount": 7,
+      "stockAmount": 10,
+      "amount": 5941.1
+    },
+    {
+      "categoryId": "C04",
+      "name": "酒水饮料",
+      "skuCount": 8,
+      "stockAmount": 1994.7,
+      "amount": 4981
+    },
+    {
+      "categoryId": "C01",
+      "name": "生鲜果蔬",
+      "skuCount": 10,
+      "stockAmount": 715.5,
+      "amount": 2004.31
+    }
+  ],
+  "cashierStats": [
+    {
+      "operatorId": "U005",
+      "name": "刘志明",
+      "employeeNo": "C004",
+      "roleName": "收银员",
+      "orderCount": 64,
+      "amount": 12315.28,
+      "avgPrice": 192.43
+    },
+    {
+      "operatorId": "U003",
+      "name": "王海涛",
+      "employeeNo": "C002",
+      "roleName": "收银员",
+      "orderCount": 72,
+      "amount": 12134.68,
+      "avgPrice": 168.54
+    },
+    {
+      "operatorId": "U004",
+      "name": "陈美玲",
+      "employeeNo": "C003",
+      "roleName": "收银员",
+      "orderCount": 69,
+      "amount": 11590.12,
+      "avgPrice": 167.97
+    },
+    {
+      "operatorId": "U002",
+      "name": "李小燕",
+      "employeeNo": "C001",
+      "roleName": "收银员",
+      "orderCount": 76,
+      "amount": 11043.16,
+      "avgPrice": 145.3
+    },
+    {
+      "operatorId": "U001",
+      "name": "张国强",
+      "employeeNo": "M001",
+      "roleName": "店长",
+      "orderCount": 65,
+      "amount": 10329.12,
+      "avgPrice": 158.91
+    }
+  ],
+  "hourStats": [
+    {
+      "hour": "08:00",
+      "orders": 38,
+      "amount": 5909.02
+    },
+    {
+      "hour": "09:00",
+      "orders": 13,
+      "amount": 2008.05
+    },
+    {
+      "hour": "10:00",
+      "orders": 32,
+      "amount": 4068.64
+    },
+    {
+      "hour": "11:00",
+      "orders": 13,
+      "amount": 2775.55
+    },
+    {
+      "hour": "12:00",
+      "orders": 29,
+      "amount": 5318.93
+    },
+    {
+      "hour": "13:00",
+      "orders": 27,
+      "amount": 4259.93
+    },
+    {
+      "hour": "14:00",
+      "orders": 25,
+      "amount": 4656.56
+    },
+    {
+      "hour": "15:00",
+      "orders": 16,
+      "amount": 2495.98
+    },
+    {
+      "hour": "16:00",
+      "orders": 22,
+      "amount": 3566.89
+    },
+    {
+      "hour": "17:00",
+      "orders": 34,
+      "amount": 5797.22
+    },
+    {
+      "hour": "18:00",
+      "orders": 16,
+      "amount": 2206.1
+    },
+    {
+      "hour": "19:00",
+      "orders": 24,
+      "amount": 4668.74
+    },
+    {
+      "hour": "20:00",
+      "orders": 22,
+      "amount": 4137.72
+    },
+    {
+      "hour": "21:00",
+      "orders": 35,
+      "amount": 5543.03
+    }
+  ]
+}

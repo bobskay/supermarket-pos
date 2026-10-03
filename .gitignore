@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+
+# 本地诊断工具产生的临时目录（Chrome 缓存等），绝不入库
+.diag-profile
+.verify-chrome
+.verify-chrome-profile

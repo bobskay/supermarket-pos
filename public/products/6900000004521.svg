@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200" role="img" aria-label="乐事薯片原味">
+  <defs>
+    <linearGradient id="bg0033" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fdf3e4"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg0033)"/>
+  <ellipse cx="50" cy="84" rx="30" ry="5" fill="rgba(0,0,0,.07)"/>
+  
+        <path d="M26 32h48l-4 44H30z" fill="#e2a52c"/>
+        <path d="M26 32h48l-1 10H27z" fill="rgba(255,255,255,.3)"/>
+        <rect x="36" y="52" width="28" height="6" rx="3" fill="rgba(255,255,255,.55)"/>
+        <rect x="36" y="63" width="18" height="5" rx="2.5" fill="rgba(255,255,255,.55)" opacity=".7"/>
+  <text x="50" y="95" text-anchor="middle" font-size="8.5" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#a8600f" opacity="0.92">乐事薯片原味</text>
+</svg>

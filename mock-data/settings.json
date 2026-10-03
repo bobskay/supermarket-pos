@@ -1,0 +1,95 @@
+{
+  "shop": {
+    "name": "惠民生活超市（中心店）",
+    "code": "HM-001",
+    "address": "广东省深圳市南山区科技园南路 128 号",
+    "phone": "0755-8888 6666",
+    "license": "91440300MA5XXXXXXX",
+    "manager": "张国强"
+  },
+  "pos": {
+    "pointsEnabled": true,
+    "pointsRate": 1,
+    "pointsDeductRate": 100,
+    "memberDiscount": true,
+    "roundMode": "round",
+    "receiptFooter": "谢谢光临，欢迎下次惠顾！",
+    "autoPrint": false,
+    "defaultPayMethod": "wechat",
+    "warnThreshold": 20
+  },
+  "permissions": {
+    "cashier": [
+      "pos:checkout",
+      "member:create",
+      "member:read",
+      "product:read",
+      "order:self"
+    ],
+    "manager": [
+      "*"
+    ]
+  },
+  "roleMatrix": [
+    {
+      "module": "收银开单",
+      "cashier": true,
+      "manager": true
+    },
+    {
+      "module": "新建会员",
+      "cashier": true,
+      "manager": true
+    },
+    {
+      "module": "查询会员",
+      "cashier": true,
+      "manager": true
+    },
+    {
+      "module": "查询商品",
+      "cashier": true,
+      "manager": true
+    },
+    {
+      "module": "查看本人订单",
+      "cashier": true,
+      "manager": true
+    },
+    {
+      "module": "查看全部订单",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "商品管理",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "库存管理",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "会员管理",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "报表统计",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "用户管理",
+      "cashier": false,
+      "manager": true
+    },
+    {
+      "module": "系统操作日志",
+      "cashier": false,
+      "manager": true
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+/* ==========================================================================
+   超市收银系统 · 主题令牌（Design Tokens）
+   --------------------------------------------------------------------------
+   所有颜色都收敛成 CSS 变量，页面里只写 bg-surface / text-text-2 / border-line
+   这类语义类名，因此「换主题」= 换一组变量值，组件代码零改动。
+
+   主题一 clean（清爽白）：白底浅灰，蓝色主色，适合明亮门店环境
+   主题二 fresh（清新绿）：白底为主，绿色主色，柔和护眼
+   主题三 midnight（曜石蓝）：深色底，靛蓝高亮，适合长时间盯屏的收银岗
+   ========================================================================== */
+
+/* ------------------------------- 主题一：清爽白 ------------------------------- */
+:root,
+[data-theme='clean'] {
+  --c-bg: #f4f6fa;
+  --c-surface: #ffffff;
+  --c-surface-2: #f7f8fb;
+  --c-surface-3: #eef1f6;
+  --c-elevated: #ffffff;
+  --c-line: #e6e9f0;
+  --c-line-strong: #d3d8e3;
+
+  --c-text: #16202f;
+  --c-text-2: #47536b;
+  --c-text-3: #7a8698;
+  --c-text-on-brand: #ffffff;
+
+  --c-primary: #1a6df0;
+  --c-primary-hover: #155fdc;
+  --c-primary-active: #114fb9;
+  --c-primary-soft: #eaf1fe;
+  --c-primary-soft-2: #dbe7fd;
+
+  --c-accent: #0f9d8f;
+  --c-accent-soft: #e6f7f5;
+
+  --c-success: #10a05a;
+  --c-success-soft: #e7f7ee;
+  --c-warning: #d98600;
+  --c-warning-soft: #fdf3e2;
+  --c-danger: #e0413f;
+  --c-danger-soft: #fdecec;
+  --c-info: #1a6df0;
+  --c-info-soft: #eaf1fe;
+  --c-purple: #7a5af5;
+  --c-purple-soft: #f0edfe;
+
+  --c-sidebar: #ffffff;
+  --c-sidebar-text: #56637a;
+  --c-sidebar-active: #1a6df0;
+  --c-sidebar-active-bg: #eaf1fe;
+
+  --shadow-sm: 0 1px 2px rgba(22, 32, 47, 0.05);
+  --shadow-md: 0 4px 16px rgba(22, 32, 47, 0.08);
+  --shadow-lg: 0 14px 40px rgba(22, 32, 47, 0.14);
+
+  --c-scroll-thumb: #ced4e0;
+  --c-mask: rgba(18, 26, 40, 0.42);
+  --c-hover: rgba(22, 32, 47, 0.04);
+  --c-skeleton: linear-gradient(90deg, #eef1f6 25%, #f6f8fb 37%, #eef1f6 63%);
+
+  color-scheme: light;
+}
+
+/* ------------------------------ 主题二：清新绿 ------------------------------ */
+[data-theme='fresh'] {
+  --c-bg: #f2f8f2;
+  --c-surface: #ffffff;
+  --c-surface-2: #f5faf4;
+  --c-surface-3: #e9f3e7;
+  --c-elevated: #ffffff;
+  --c-line: #ddeade;
+  --c-line-strong: #c4d9c6;
+
+  --c-text: #17241b;
+  --c-text-2: #3f5346;
+  --c-text-3: #6f856f;
+  --c-text-on-brand: #ffffff;
+
+  --c-primary: #2f8f4e;
+  --c-primary-hover: #277a43;
+  --c-primary-active: #206637;
+  --c-primary-soft: #e8f5ec;
+  --c-primary-soft-2: #d6ecdb;
+
+  --c-accent: #14a37f;
+  --c-accent-soft: #e3f6f1;
+
+  --c-success: #1e9e5a;
+  --c-success-soft: #e6f6ec;
+  --c-warning: #cf8200;
+  --c-warning-soft: #fcf2e0;
+  --c-danger: #d8443f;
+  --c-danger-soft: #fceceb;
+  --c-info: #2f7fc1;
+  --c-info-soft: #e9f3fb;
+  --c-purple: #7a5af5;
+  --c-purple-soft: #f0edfe;
+
+  --c-sidebar: #ffffff;
+  --c-sidebar-text: #4f6557;
+  --c-sidebar-active: #2f8f4e;
+  --c-sidebar-active-bg: #e8f5ec;
+
+  --shadow-sm: 0 1px 2px rgba(23, 36, 27, 0.05);
+  --shadow-md: 0 4px 16px rgba(23, 36, 27, 0.08);
+  --shadow-lg: 0 14px 40px rgba(23, 36, 27, 0.14);
+
+  --c-scroll-thumb: #c3d8c5;
+  --c-mask: rgba(19, 32, 23, 0.42);
+  --c-hover: rgba(23, 36, 27, 0.04);
+  --c-skeleton: linear-gradient(90deg, #e9f3e7 25%, #f3f9f2 37%, #e9f3e7 63%);
+
+  color-scheme: light;
+}
+
+/* ------------------------------ 主题三：曜石蓝 ------------------------------ */
+[data-theme='midnight'] {
+  --c-bg: #0d1117;
+  --c-surface: #151b24;
+  --c-surface-2: #1a212c;
+  --c-surface-3: #1f2733;
+  --c-elevated: #1a212c;
+  --c-line: #262f3d;
+  --c-line-strong: #3a4557;
+
+  --c-text: #e8edf5;
+  --c-text-2: #aab7c9;
+  --c-text-3: #7d8a9d;
+  --c-text-on-brand: #ffffff;
+
+  --c-primary: #4c8dff;
+  --c-primary-hover: #669dff;
+  --c-primary-active: #3a7ae8;
+  --c-primary-soft: #19273f;
+  --c-primary-soft-2: #1f3352;
+
+  --c-accent: #2ac9b6;
+  --c-accent-soft: #102b2b;
+
+  --c-success: #33c47e;
+  --c-success-soft: #0f2a1e;
+  --c-warning: #e8a33d;
+  --c-warning-soft: #2d2312;
+  --c-danger: #f0655f;
+  --c-danger-soft: #2e1a1a;
+  --c-info: #4c8dff;
+  --c-info-soft: #19273f;
+  --c-purple: #a08cff;
+  --c-purple-soft: #221d3b;
+
+  --c-sidebar: #111720;
+  --c-sidebar-text: #93a1b5;
+  --c-sidebar-active: #6ea3ff;
+  --c-sidebar-active-bg: #1b2536;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+
+  --c-scroll-thumb: #33405a;
+  --c-mask: rgba(0, 0, 0, 0.6);
+  --c-hover: rgba(255, 255, 255, 0.05);
+  --c-skeleton: linear-gradient(90deg, #1a212c 25%, #232c3a 37%, #1a212c 63%);
+
+  color-scheme: dark;
+}
+
+/* 把令牌暴露给 Tailwind 4：生成 bg-surface / text-text-2 / border-line 等工具类 */
+@theme {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-elevated: var(--c-elevated);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-text: var(--c-text);
+  --color-text-2: var(--c-text-2);
+  --color-text-3: var(--c-text-3);
+  --color-text-on-brand: var(--c-text-on-brand);
+  --color-primary: var(--c-primary);
+  --color-primary-hover: var(--c-primary-hover);
+  --color-primary-active: var(--c-primary-active);
+  --color-primary-soft: var(--c-primary-soft);
+  --color-primary-soft-2: var(--c-primary-soft-2);
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-success: var(--c-success);
+  --color-success-soft: var(--c-success-soft);
+  --color-warning: var(--c-warning);
+  --color-warning-soft: var(--c-warning-soft);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-info: var(--c-info);
+  --color-info-soft: var(--c-info-soft);
+  --color-purple: var(--c-purple);
+  --color-purple-soft: var(--c-purple-soft);
+  --color-sidebar: var(--c-sidebar);
+  --color-mask: var(--c-mask);
+  --color-hover: var(--c-hover);
+  --color-scroll-thumb: var(--c-scroll-thumb);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  --font-sans: 'Inter', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB',
+    system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
+}

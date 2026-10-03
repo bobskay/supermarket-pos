@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200" role="img" aria-label="德芙丝滑牛奶巧克力">
+  <defs>
+    <linearGradient id="bg0037" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fdf3e4"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg0037)"/>
+  <ellipse cx="50" cy="84" rx="30" ry="5" fill="rgba(0,0,0,.07)"/>
+  
+        <rect x="20" y="40" width="60" height="26" rx="13" fill="#7a4a2b"/>
+        <rect x="26" y="46" width="34" height="6" rx="3" fill="rgba(255,255,255,.55)"/>
+  <text x="50" y="95" text-anchor="middle" font-size="8.5" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#a8600f" opacity="0.92">德芙丝滑牛奶巧克力</text>
+</svg>

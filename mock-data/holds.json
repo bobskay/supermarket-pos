@@ -1,0 +1,26 @@
+[
+  {
+    "id": "H001",
+    "holdNo": "GD2026032001",
+    "memberId": "M0003",
+    "memberNo": "VIP10003",
+    "memberName": "李涛",
+    "itemCount": 3,
+    "amount": 78.4,
+    "operatorName": "李小燕",
+    "remark": "顾客回去取东西",
+    "createdAt": "2026-03-20 10:05:00"
+  },
+  {
+    "id": "H002",
+    "holdNo": "GD2026032002",
+    "memberId": "",
+    "memberNo": "",
+    "memberName": "",
+    "itemCount": 5,
+    "amount": 156.2,
+    "operatorName": "王海涛",
+    "remark": "",
+    "createdAt": "2026-03-20 09:35:00"
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "C01",
+    "code": "FRESH",
+    "name": "生鲜果蔬",
+    "sort": 1,
+    "remark": "每日补货，损耗较高"
+  },
+  {
+    "id": "C02",
+    "code": "MEAT",
+    "name": "肉禽蛋品",
+    "sort": 2,
+    "remark": "冷链商品"
+  },
+  {
+    "id": "C03",
+    "code": "DAIRY",
+    "name": "乳品烘焙",
+    "sort": 3,
+    "remark": "注意保质期"
+  },
+  {
+    "id": "C04",
+    "code": "DRINK",
+    "name": "酒水饮料",
+    "sort": 4,
+    "remark": ""
+  },
+  {
+    "id": "C05",
+    "code": "SNACK",
+    "name": "休闲零食",
+    "sort": 5,
+    "remark": ""
+  },
+  {
+    "id": "C06",
+    "code": "GRAIN",
+    "name": "粮油调味",
+    "sort": 6,
+    "remark": ""
+  },
+  {
+    "id": "C07",
+    "code": "DAILY",
+    "name": "日用百货",
+    "sort": 7,
+    "remark": "含洗化用品"
+  },
+  {
+    "id": "C08",
+    "code": "CLEAN",
+    "name": "清洁纸品",
+    "sort": 8,
+    "remark": ""
+  }
+]

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200" role="img" aria-label="本地小青菜">
+  <defs>
+    <linearGradient id="bg0005" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef8ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg0005)"/>
+  <ellipse cx="50" cy="84" rx="30" ry="5" fill="rgba(0,0,0,.07)"/>
+  
+        <path d="M50 76c-16 0-26-10-26-24 0-12 10-20 26-20s26 8 26 20c0 14-10 24-26 24z" fill="#e8f5e9"/>
+        <path d="M50 76c-10 0-18-8-18-20" stroke="#4caf50" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M50 76c10 0 18-8 18-20" stroke="#4caf50" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M50 78V52" stroke="#2f7d32" stroke-width="3" stroke-linecap="round"/>
+  <text x="50" y="95" text-anchor="middle" font-size="8.5" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#2f7d32" opacity="0.92">本地小青菜</text>
+</svg>

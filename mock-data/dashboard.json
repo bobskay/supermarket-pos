@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-03-20 10:30:00",
+  "greeting": "",
+  "kpi": {
+    "todaySales": 1637.61,
+    "todayOrders": 11,
+    "todayMembers": 5,
+    "todayAvgPrice": 148.87,
+    "todaySalesCompare": 12.6,
+    "todayOrdersCompare": 8.4,
+    "grossProfit": 509.06
+  },
+  "todo": {
+    "lowStock": 11,
+    "emptyStock": 35,
+    "pendingPurchase": 1,
+    "refundToday": 0
+  }
+}

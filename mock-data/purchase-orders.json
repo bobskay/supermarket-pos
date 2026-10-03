@@ -1,0 +1,914 @@
+[
+  {
+    "id": "PO00001",
+    "purchaseNo": "RK20260221001",
+    "supplier": "蒙发乳业华南仓",
+    "status": "pending",
+    "statusName": "待入库",
+    "totalQty": 270,
+    "totalAmount": 4101,
+    "itemCount": 8,
+    "items": [
+      {
+        "productId": "P0060",
+        "barcode": "6900000008220",
+        "name": "加厚垃圾袋30只",
+        "unit": "卷",
+        "costPrice": 4.5,
+        "qty": 10,
+        "amount": 45
+      },
+      {
+        "productId": "P0021",
+        "barcode": "6900000002877",
+        "name": "光明酸奶100g*8",
+        "unit": "排",
+        "costPrice": 14.5,
+        "qty": 20,
+        "amount": 290
+      },
+      {
+        "productId": "P0005",
+        "barcode": "6900000000685",
+        "name": "本地小青菜",
+        "unit": "斤",
+        "costPrice": 1.8,
+        "qty": 25,
+        "amount": 45
+      },
+      {
+        "productId": "P0011",
+        "barcode": "6900000001507",
+        "name": "带皮五花肉",
+        "unit": "斤",
+        "costPrice": 15.8,
+        "qty": 55,
+        "amount": 869
+      },
+      {
+        "productId": "P0007",
+        "barcode": "6900000000959",
+        "name": "沙地土豆",
+        "unit": "斤",
+        "costPrice": 1.6,
+        "qty": 55,
+        "amount": 88
+      },
+      {
+        "productId": "P0001",
+        "barcode": "6900000000137",
+        "name": "红富士苹果",
+        "unit": "斤",
+        "costPrice": 5.2,
+        "qty": 20,
+        "amount": 104
+      },
+      {
+        "productId": "P0053",
+        "barcode": "6900000007261",
+        "name": "不锈钢衣架10只",
+        "unit": "把",
+        "costPrice": 8,
+        "qty": 40,
+        "amount": 320
+      },
+      {
+        "productId": "P0041",
+        "barcode": "6900000005617",
+        "name": "福临门东北大米10kg",
+        "unit": "袋",
+        "costPrice": 52,
+        "qty": 45,
+        "amount": 2340
+      }
+    ],
+    "operator": "张国强",
+    "remark": "月结供应商",
+    "createdAt": "2026-02-21 07:00:00"
+  },
+  {
+    "id": "PO00002",
+    "purchaseNo": "RK20260303002",
+    "supplier": "蒙发乳业华南仓",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 295,
+    "totalAmount": 3011,
+    "itemCount": 6,
+    "items": [
+      {
+        "productId": "P0002",
+        "barcode": "6900000000274",
+        "name": "海南香蕉",
+        "unit": "斤",
+        "costPrice": 3,
+        "qty": 40,
+        "amount": 120
+      },
+      {
+        "productId": "P0022",
+        "barcode": "6900000003014",
+        "name": "安佳淡奶油1L",
+        "unit": "盒",
+        "costPrice": 28,
+        "qty": 60,
+        "amount": 1680
+      },
+      {
+        "productId": "P0032",
+        "barcode": "6900000004384",
+        "name": "东鹏特饮500ml",
+        "unit": "瓶",
+        "costPrice": 3.9,
+        "qty": 50,
+        "amount": 195
+      },
+      {
+        "productId": "P0052",
+        "barcode": "6900000007124",
+        "name": "5号碱性电池4粒",
+        "unit": "板",
+        "costPrice": 6.5,
+        "qty": 50,
+        "amount": 325
+      },
+      {
+        "productId": "P0030",
+        "barcode": "6900000004110",
+        "name": "青岛啤酒500ml",
+        "unit": "罐",
+        "costPrice": 3.8,
+        "qty": 40,
+        "amount": 152
+      },
+      {
+        "productId": "P0050",
+        "barcode": "6900000006850",
+        "name": "高露洁牙膏140g",
+        "unit": "支",
+        "costPrice": 9.8,
+        "qty": 55,
+        "amount": 539
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-03 09:00:00"
+  },
+  {
+    "id": "PO00003",
+    "purchaseNo": "RK20260311003",
+    "supplier": "百川日用百货",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 195,
+    "totalAmount": 2002,
+    "itemCount": 4,
+    "items": [
+      {
+        "productId": "P0058",
+        "barcode": "6900000007946",
+        "name": "威猛先生洁厕灵",
+        "unit": "瓶",
+        "costPrice": 9.5,
+        "qty": 50,
+        "amount": 475
+      },
+      {
+        "productId": "P0015",
+        "barcode": "6900000002055",
+        "name": "新鲜鸡腿",
+        "unit": "斤",
+        "costPrice": 9.5,
+        "qty": 60,
+        "amount": 570
+      },
+      {
+        "productId": "P0049",
+        "barcode": "6900000006713",
+        "name": "海飞丝洗发水400ml",
+        "unit": "瓶",
+        "costPrice": 33,
+        "qty": 25,
+        "amount": 825
+      },
+      {
+        "productId": "P0027",
+        "barcode": "6900000003699",
+        "name": "可口可乐330ml",
+        "unit": "罐",
+        "costPrice": 2.2,
+        "qty": 60,
+        "amount": 132
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-11 09:00:00"
+  },
+  {
+    "id": "PO00004",
+    "purchaseNo": "RK20260308004",
+    "supplier": "蒙发乳业华南仓",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 95,
+    "totalAmount": 1184.5,
+    "itemCount": 3,
+    "items": [
+      {
+        "productId": "P0001",
+        "barcode": "6900000000137",
+        "name": "红富士苹果",
+        "unit": "斤",
+        "costPrice": 5.2,
+        "qty": 35,
+        "amount": 182
+      },
+      {
+        "productId": "P0016",
+        "barcode": "6900000002192",
+        "name": "黄牛腱子肉",
+        "unit": "斤",
+        "costPrice": 38,
+        "qty": 25,
+        "amount": 950
+      },
+      {
+        "productId": "P0009",
+        "barcode": "6900000001233",
+        "name": "白玉洋葱",
+        "unit": "斤",
+        "costPrice": 1.5,
+        "qty": 35,
+        "amount": 52.5
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-08 09:00:00"
+  },
+  {
+    "id": "PO00005",
+    "purchaseNo": "RK20260220005",
+    "supplier": "蒙发乳业华南仓",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 300,
+    "totalAmount": 5639,
+    "itemCount": 8,
+    "items": [
+      {
+        "productId": "P0016",
+        "barcode": "6900000002192",
+        "name": "黄牛腱子肉",
+        "unit": "斤",
+        "costPrice": 38,
+        "qty": 40,
+        "amount": 1520
+      },
+      {
+        "productId": "P0006",
+        "barcode": "6900000000822",
+        "name": "山东黄瓜",
+        "unit": "斤",
+        "costPrice": 2,
+        "qty": 60,
+        "amount": 120
+      },
+      {
+        "productId": "P0020",
+        "barcode": "6900000002740",
+        "name": "蒙牛特仑苏礼盒",
+        "unit": "箱",
+        "costPrice": 42,
+        "qty": 50,
+        "amount": 2100
+      },
+      {
+        "productId": "P0044",
+        "barcode": "6900000006028",
+        "name": "太太乐鸡精200g",
+        "unit": "袋",
+        "costPrice": 7.2,
+        "qty": 20,
+        "amount": 144
+      },
+      {
+        "productId": "P0007",
+        "barcode": "6900000000959",
+        "name": "沙地土豆",
+        "unit": "斤",
+        "costPrice": 1.6,
+        "qty": 25,
+        "amount": 40
+      },
+      {
+        "productId": "P0055",
+        "barcode": "6900000007535",
+        "name": "维达卷纸10卷",
+        "unit": "提",
+        "costPrice": 18.5,
+        "qty": 50,
+        "amount": 925
+      },
+      {
+        "productId": "P0013",
+        "barcode": "6900000001781",
+        "name": "新鲜猪肋排",
+        "unit": "斤",
+        "costPrice": 22,
+        "qty": 30,
+        "amount": 660
+      },
+      {
+        "productId": "P0001",
+        "barcode": "6900000000137",
+        "name": "红富士苹果",
+        "unit": "斤",
+        "costPrice": 5.2,
+        "qty": 25,
+        "amount": 130
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-02-20 07:00:00"
+  },
+  {
+    "id": "PO00006",
+    "purchaseNo": "RK20260303006",
+    "supplier": "中粮粮油贸易商",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 205,
+    "totalAmount": 960,
+    "itemCount": 6,
+    "items": [
+      {
+        "productId": "P0002",
+        "barcode": "6900000000274",
+        "name": "海南香蕉",
+        "unit": "斤",
+        "costPrice": 3,
+        "qty": 20,
+        "amount": 60
+      },
+      {
+        "productId": "P0059",
+        "barcode": "6900000008083",
+        "name": "妙洁保鲜袋100只",
+        "unit": "盒",
+        "costPrice": 5.8,
+        "qty": 30,
+        "amount": 174
+      },
+      {
+        "productId": "P0045",
+        "barcode": "6900000006165",
+        "name": "中盐加碘食用盐",
+        "unit": "袋",
+        "costPrice": 1.2,
+        "qty": 60,
+        "amount": 72
+      },
+      {
+        "productId": "P0054",
+        "barcode": "6900000007398",
+        "name": "一次性手套100只",
+        "unit": "盒",
+        "costPrice": 7.5,
+        "qty": 60,
+        "amount": 450
+      },
+      {
+        "productId": "P0053",
+        "barcode": "6900000007261",
+        "name": "不锈钢衣架10只",
+        "unit": "把",
+        "costPrice": 8,
+        "qty": 15,
+        "amount": 120
+      },
+      {
+        "productId": "P0048",
+        "barcode": "6900000006576",
+        "name": "舒肤佳香皂",
+        "unit": "块",
+        "costPrice": 4.2,
+        "qty": 20,
+        "amount": 84
+      }
+    ],
+    "operator": "张国强",
+    "remark": "月结供应商",
+    "createdAt": "2026-03-03 07:00:00"
+  },
+  {
+    "id": "PO00007",
+    "purchaseNo": "RK20260309007",
+    "supplier": "华南生鲜配送中心",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 185,
+    "totalAmount": 1812.5,
+    "itemCount": 5,
+    "items": [
+      {
+        "productId": "P0010",
+        "barcode": "6900000001370",
+        "name": "新鲜香菇",
+        "unit": "盒",
+        "costPrice": 6,
+        "qty": 35,
+        "amount": 210
+      },
+      {
+        "productId": "P0025",
+        "barcode": "6900000003425",
+        "name": "农夫山泉550ml",
+        "unit": "瓶",
+        "costPrice": 0.9,
+        "qty": 55,
+        "amount": 49.5
+      },
+      {
+        "productId": "P0061",
+        "barcode": "6900000008357",
+        "name": "洁云厨房纸巾2卷",
+        "unit": "提",
+        "costPrice": 8.2,
+        "qty": 60,
+        "amount": 492
+      },
+      {
+        "productId": "P0051",
+        "barcode": "6900000006987",
+        "name": "得力中性笔0.5mm",
+        "unit": "支",
+        "costPrice": 1.1,
+        "qty": 10,
+        "amount": 11
+      },
+      {
+        "productId": "P0020",
+        "barcode": "6900000002740",
+        "name": "蒙牛特仑苏礼盒",
+        "unit": "箱",
+        "costPrice": 42,
+        "qty": 25,
+        "amount": 1050
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-09 09:00:00"
+  },
+  {
+    "id": "PO00008",
+    "purchaseNo": "RK20260304008",
+    "supplier": "百川日用百货",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 210,
+    "totalAmount": 1559.5,
+    "itemCount": 7,
+    "items": [
+      {
+        "productId": "P0054",
+        "barcode": "6900000007398",
+        "name": "一次性手套100只",
+        "unit": "盒",
+        "costPrice": 7.5,
+        "qty": 50,
+        "amount": 375
+      },
+      {
+        "productId": "P0007",
+        "barcode": "6900000000959",
+        "name": "沙地土豆",
+        "unit": "斤",
+        "costPrice": 1.6,
+        "qty": 30,
+        "amount": 48
+      },
+      {
+        "productId": "P0046",
+        "barcode": "6900000006302",
+        "name": "白砂糖400g",
+        "unit": "袋",
+        "costPrice": 3.8,
+        "qty": 20,
+        "amount": 76
+      },
+      {
+        "productId": "P0045",
+        "barcode": "6900000006165",
+        "name": "中盐加碘食用盐",
+        "unit": "袋",
+        "costPrice": 1.2,
+        "qty": 15,
+        "amount": 18
+      },
+      {
+        "productId": "P0018",
+        "barcode": "6900000002466",
+        "name": "鲜鱿鱼",
+        "unit": "斤",
+        "costPrice": 16,
+        "qty": 40,
+        "amount": 640
+      },
+      {
+        "productId": "P0015",
+        "barcode": "6900000002055",
+        "name": "新鲜鸡腿",
+        "unit": "斤",
+        "costPrice": 9.5,
+        "qty": 15,
+        "amount": 142.5
+      },
+      {
+        "productId": "P0052",
+        "barcode": "6900000007124",
+        "name": "5号碱性电池4粒",
+        "unit": "板",
+        "costPrice": 6.5,
+        "qty": 40,
+        "amount": 260
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-04 07:00:00"
+  },
+  {
+    "id": "PO00009",
+    "purchaseNo": "RK20260306009",
+    "supplier": "蒙发乳业华南仓",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 105,
+    "totalAmount": 962.5,
+    "itemCount": 3,
+    "items": [
+      {
+        "productId": "P0014",
+        "barcode": "6900000001918",
+        "name": "清远走地鸡",
+        "unit": "只",
+        "costPrice": 18,
+        "qty": 20,
+        "amount": 360
+      },
+      {
+        "productId": "P0060",
+        "barcode": "6900000008220",
+        "name": "加厚垃圾袋30只",
+        "unit": "卷",
+        "costPrice": 4.5,
+        "qty": 30,
+        "amount": 135
+      },
+      {
+        "productId": "P0037",
+        "barcode": "6900000005069",
+        "name": "德芙丝滑牛奶巧克力",
+        "unit": "排",
+        "costPrice": 8.5,
+        "qty": 55,
+        "amount": 467.5
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-06 10:00:00"
+  },
+  {
+    "id": "PO00010",
+    "purchaseNo": "RK20260315010",
+    "supplier": "百川日用百货",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 235,
+    "totalAmount": 2556,
+    "itemCount": 5,
+    "items": [
+      {
+        "productId": "P0021",
+        "barcode": "6900000002877",
+        "name": "光明酸奶100g*8",
+        "unit": "排",
+        "costPrice": 14.5,
+        "qty": 60,
+        "amount": 870
+      },
+      {
+        "productId": "P0012",
+        "barcode": "6900000001644",
+        "name": "猪前腿瘦肉",
+        "unit": "斤",
+        "costPrice": 13.5,
+        "qty": 60,
+        "amount": 810
+      },
+      {
+        "productId": "P0035",
+        "barcode": "6900000004795",
+        "name": "洽洽香瓜子160g",
+        "unit": "袋",
+        "costPrice": 5,
+        "qty": 50,
+        "amount": 250
+      },
+      {
+        "productId": "P0031",
+        "barcode": "6900000004247",
+        "name": "长城干红葡萄酒",
+        "unit": "瓶",
+        "costPrice": 45,
+        "qty": 10,
+        "amount": 450
+      },
+      {
+        "productId": "P0029",
+        "barcode": "6900000003973",
+        "name": "康师傅冰红茶1L",
+        "unit": "瓶",
+        "costPrice": 3.2,
+        "qty": 55,
+        "amount": 176
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-15 10:00:00"
+  },
+  {
+    "id": "PO00011",
+    "purchaseNo": "RK20260226011",
+    "supplier": "华南生鲜配送中心",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 290,
+    "totalAmount": 4876.5,
+    "itemCount": 8,
+    "items": [
+      {
+        "productId": "P0015",
+        "barcode": "6900000002055",
+        "name": "新鲜鸡腿",
+        "unit": "斤",
+        "costPrice": 9.5,
+        "qty": 10,
+        "amount": 95
+      },
+      {
+        "productId": "P0041",
+        "barcode": "6900000005617",
+        "name": "福临门东北大米10kg",
+        "unit": "袋",
+        "costPrice": 52,
+        "qty": 55,
+        "amount": 2860
+      },
+      {
+        "productId": "P0010",
+        "barcode": "6900000001370",
+        "name": "新鲜香菇",
+        "unit": "盒",
+        "costPrice": 6,
+        "qty": 45,
+        "amount": 270
+      },
+      {
+        "productId": "P0036",
+        "barcode": "6900000004932",
+        "name": "旺旺雪饼84g",
+        "unit": "袋",
+        "costPrice": 3.6,
+        "qty": 25,
+        "amount": 90
+      },
+      {
+        "productId": "P0052",
+        "barcode": "6900000007124",
+        "name": "5号碱性电池4粒",
+        "unit": "板",
+        "costPrice": 6.5,
+        "qty": 35,
+        "amount": 227.5
+      },
+      {
+        "productId": "P0025",
+        "barcode": "6900000003425",
+        "name": "农夫山泉550ml",
+        "unit": "瓶",
+        "costPrice": 0.9,
+        "qty": 60,
+        "amount": 54
+      },
+      {
+        "productId": "P0053",
+        "barcode": "6900000007261",
+        "name": "不锈钢衣架10只",
+        "unit": "把",
+        "costPrice": 8,
+        "qty": 20,
+        "amount": 160
+      },
+      {
+        "productId": "P0022",
+        "barcode": "6900000003014",
+        "name": "安佳淡奶油1L",
+        "unit": "盒",
+        "costPrice": 28,
+        "qty": 40,
+        "amount": 1120
+      }
+    ],
+    "operator": "张国强",
+    "remark": "月结供应商",
+    "createdAt": "2026-02-26 07:00:00"
+  },
+  {
+    "id": "PO00012",
+    "purchaseNo": "RK20260220012",
+    "supplier": "联和饮料经销商",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 105,
+    "totalAmount": 1418,
+    "itemCount": 5,
+    "items": [
+      {
+        "productId": "P0030",
+        "barcode": "6900000004110",
+        "name": "青岛啤酒500ml",
+        "unit": "罐",
+        "costPrice": 3.8,
+        "qty": 35,
+        "amount": 133
+      },
+      {
+        "productId": "P0012",
+        "barcode": "6900000001644",
+        "name": "猪前腿瘦肉",
+        "unit": "斤",
+        "costPrice": 13.5,
+        "qty": 20,
+        "amount": 270
+      },
+      {
+        "productId": "P0014",
+        "barcode": "6900000001918",
+        "name": "清远走地鸡",
+        "unit": "只",
+        "costPrice": 18,
+        "qty": 25,
+        "amount": 450
+      },
+      {
+        "productId": "P0021",
+        "barcode": "6900000002877",
+        "name": "光明酸奶100g*8",
+        "unit": "排",
+        "costPrice": 14.5,
+        "qty": 10,
+        "amount": 145
+      },
+      {
+        "productId": "P0022",
+        "barcode": "6900000003014",
+        "name": "安佳淡奶油1L",
+        "unit": "盒",
+        "costPrice": 28,
+        "qty": 15,
+        "amount": 420
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-02-20 10:00:00"
+  },
+  {
+    "id": "PO00013",
+    "purchaseNo": "RK20260308013",
+    "supplier": "华南生鲜配送中心",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 195,
+    "totalAmount": 1376,
+    "itemCount": 6,
+    "items": [
+      {
+        "productId": "P0015",
+        "barcode": "6900000002055",
+        "name": "新鲜鸡腿",
+        "unit": "斤",
+        "costPrice": 9.5,
+        "qty": 40,
+        "amount": 380
+      },
+      {
+        "productId": "P0005",
+        "barcode": "6900000000685",
+        "name": "本地小青菜",
+        "unit": "斤",
+        "costPrice": 1.8,
+        "qty": 40,
+        "amount": 72
+      },
+      {
+        "productId": "P0060",
+        "barcode": "6900000008220",
+        "name": "加厚垃圾袋30只",
+        "unit": "卷",
+        "costPrice": 4.5,
+        "qty": 30,
+        "amount": 135
+      },
+      {
+        "productId": "P0024",
+        "barcode": "6900000003288",
+        "name": "现烤红豆餐包",
+        "unit": "个",
+        "costPrice": 3.8,
+        "qty": 55,
+        "amount": 209
+      },
+      {
+        "productId": "P0031",
+        "barcode": "6900000004247",
+        "name": "长城干红葡萄酒",
+        "unit": "瓶",
+        "costPrice": 45,
+        "qty": 10,
+        "amount": 450
+      },
+      {
+        "productId": "P0052",
+        "barcode": "6900000007124",
+        "name": "5号碱性电池4粒",
+        "unit": "板",
+        "costPrice": 6.5,
+        "qty": 20,
+        "amount": 130
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-08 10:00:00"
+  },
+  {
+    "id": "PO00014",
+    "purchaseNo": "RK20260312014",
+    "supplier": "联和饮料经销商",
+    "status": "received",
+    "statusName": "已入库",
+    "totalQty": 180,
+    "totalAmount": 3422.5,
+    "itemCount": 4,
+    "items": [
+      {
+        "productId": "P0030",
+        "barcode": "6900000004110",
+        "name": "青岛啤酒500ml",
+        "unit": "罐",
+        "costPrice": 3.8,
+        "qty": 25,
+        "amount": 95
+      },
+      {
+        "productId": "P0060",
+        "barcode": "6900000008220",
+        "name": "加厚垃圾袋30只",
+        "unit": "卷",
+        "costPrice": 4.5,
+        "qty": 55,
+        "amount": 247.5
+      },
+      {
+        "productId": "P0015",
+        "barcode": "6900000002055",
+        "name": "新鲜鸡腿",
+        "unit": "斤",
+        "costPrice": 9.5,
+        "qty": 40,
+        "amount": 380
+      },
+      {
+        "productId": "P0031",
+        "barcode": "6900000004247",
+        "name": "长城干红葡萄酒",
+        "unit": "瓶",
+        "costPrice": 45,
+        "qty": 60,
+        "amount": 2700
+      }
+    ],
+    "operator": "张国强",
+    "remark": "",
+    "createdAt": "2026-03-12 10:00:00"
+  }
+]
