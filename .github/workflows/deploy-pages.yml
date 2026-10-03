@@ -49,6 +49,11 @@ jobs:
         run: touch dist/.nojekyll
 
       - uses: actions/configure-pages@v5
+        with:
+          # 首次部署时自动启用 Pages 并设为「GitHub Actions」来源；
+          # 若仓库已手动启用，这一步是无副作用的空操作。
+          # 依赖工作流顶部的 permissions: pages: write。
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
