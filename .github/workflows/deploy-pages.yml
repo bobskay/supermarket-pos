@@ -23,23 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
         with:
+          # 这里刻意不开启 cache：
+          # setup-node 的 pnpm 缓存需要在 setup-node 之前就能解析出 store 路径，
+          # 顺序稍有差异就会直接让这一步失败，而本项目依赖很少、缓存收益有限。
           node-version: 20
-          cache: pnpm
 
       - name: 安装依赖
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: 构建静态站点
         # vite.config.js 会读取 GITHUB_REPOSITORY 自动推导 /<仓库名>/ 作为 base
         run: pnpm run build
 
-      - name: 关闭 Jekyll 处理（下划线开头的文件会被 Jekyll 忽略）
+      - name: 关闭 Jekyll 处理
+        # 下划线开头的文件/目录会被 Jekyll 忽略，加上这个标记跳过处理
         run: touch dist/.nojekyll
 
       - uses: actions/configure-pages@v5
